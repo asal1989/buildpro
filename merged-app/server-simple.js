@@ -33,13 +33,6 @@ function createSession(user) {
 }
 
 function getSession(token) {
-  if (!token) return null;
-  
-  // Support both Authorization: Bearer token and x-auth-token
-  if (token.startsWith('Bearer ')) {
-    token = token.slice(7);
-  }
-  
   return sessions.get(token);
 }
 

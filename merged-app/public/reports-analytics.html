@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reports & Analytics - BuildPro</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f4f1ec;--surface:#fff;--surface2:#ede9e2;--border:#d8d2c6;--text:#1a1714;--text2:#635e57;--text3:#9c968e;--rust:#b8430a;--forest:#1a6b3a;--navy:#1a3b6b;--plum:#6b1a5a;--gold:#8b6914;--radius:12px;--shadow:0 4px 20px rgba(0,0,0,.1)}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+a{text-decoration:none;color:inherit}button{font:inherit}
+.layout{display:flex;min-height:100vh}
+.sidebar{width:236px;min-width:236px;background:var(--surface);border-right:1px solid var(--border);position:fixed;inset:0 auto 0 0;display:flex;flex-direction:column}
+.sidebar-logo{padding:22px 18px 16px;border-bottom:1px solid var(--border)}
+.logo-tag{font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--text3)}
+.logo-name{font-size:19px;font-weight:800;margin-top:2px}.logo-dot{color:var(--rust)}
+.sidebar-nav{flex:1;padding:10px 8px}
+.nav-sec{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);padding:10px 10px 4px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;font-size:12px;color:var(--text2);margin-bottom:1px}
+.nav-item.active{background:#fef0ea;color:var(--rust);font-weight:600;border:1px solid #f5c4a8}
+.sidebar-footer{padding:14px 16px;border-top:1px solid var(--border)}
+.user-row{display:flex;align-items:center;gap:10px}
+.uav{width:32px;height:32px;border-radius:50%;background:#fef0ea;border:1px solid #f5c4a8;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--rust)}
+.urole{font-size:10px;color:var(--text3)}
+.proj-pill{display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:10px;color:var(--text2);margin-top:8px}
+.pdot{width:5px;height:5px;border-radius:50%;background:var(--forest)}
+.main{margin-left:236px;flex:1}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:5}
+.bc,.bc-cur{font-size:12px}.bc,.bc-sep{color:var(--text3)}.bc-cur{font-weight:600;color:var(--text)}
+.btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer}
+.btn:hover{background:var(--surface2)}
+.btn-primary{background:var(--rust);color:#fff;border-color:var(--rust)}
+.btn-primary:hover{background:#9e3a08}
+.content{padding:28px}
+.page-title{font-size:22px;font-weight:800}.page-sub{font-size:12px;color:var(--text3);margin-top:3px}
+/* ---- TABS ---- */
+.tab-bar{display:flex;gap:4px;border-bottom:2px solid var(--border);margin:20px 0 0}
+.tab-btn{padding:9px 18px;border:none;background:none;color:var(--text2);font:inherit;font-size:13px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0;transition:color .15s}
+.tab-btn:hover{color:var(--text);background:var(--surface2)}
+.tab-btn.active{color:var(--rust);border-bottom-color:var(--rust);background:var(--surface)}
+.tab-panel{display:none;padding-top:20px}
+.tab-panel.active{display:block}
+/* ---- DASHBOARD (overview) ---- */
+.kpi-row{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.card,.chart-card,.list-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow)}
+.card{padding:14px 16px}
+.kpi-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
+.kpi-value{font-size:20px;font-weight:800;margin-top:6px;font-family:'IBM Plex Mono',monospace}
+.kpi-sub{font-size:10px;color:var(--text3);margin-top:4px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.chart-card,.list-card{padding:16px 18px}
+.cc-title,.list-title{font-size:13px;font-weight:700}
+.cc-sub{font-size:11px;color:var(--text3);margin-top:2px;margin-bottom:12px}
+.list-item{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:12px}
+.list-item:last-child{border-bottom:none}
+canvas{max-height:260px!important}
+/* ---- REPORT TABLES ---- */
+.filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.filter-input{padding:7px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font:inherit;font-size:12px;color:var(--text);min-width:160px}
+.filter-input:focus{outline:2px solid var(--rust);border-color:var(--rust)}
+.rpt-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+.rpt-table{width:100%;border-collapse:collapse;font-size:12px}
+.rpt-table th{background:var(--surface2);padding:9px 14px;text-align:left;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);border-bottom:2px solid var(--border)}
+.rpt-table td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+.rpt-table tr:last-child td{border-bottom:none}
+.rpt-table tr:hover td{background:#fafaf8}
+.empty{padding:36px 16px;text-align:center;color:var(--text3);font-size:13px}
+.rpt-stats{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.rpt-stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 16px;min-width:110px}
+.rpt-stat-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
+.rpt-stat-value{font-size:22px;font-weight:800;margin-top:4px;font-family:'IBM Plex Mono',monospace}
+/* badges */
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700}
+.b-pending{background:#fef0ea;color:var(--rust)}
+.b-escalated{background:#f5e8f5;color:var(--plum)}
+.b-approved,.b-certified,.b-received,.b-paid{background:#e8f5ee;color:var(--forest)}
+.b-rejected,.b-cancelled{background:#fce8e8;color:#c0392b}
+.b-po-raised,.b-dispatched,.b-on-hold,.b-submitted{background:#e8edf5;color:var(--navy)}
+.b-default{background:var(--surface2);color:var(--text2)}
+/* mono + muted */
+.mono{font-family:'IBM Plex Mono',monospace}
+.muted{color:var(--text3)}
+/* error state */
+.error-banner{background:#fce8e8;border:1px solid #f5a0a0;color:#c0392b;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px}
+/* print */
+@media print{
+  .sidebar,.topbar,.filter-bar,.tab-bar,.no-print{display:none!important}
+  .main{margin-left:0!important}
+  .tab-panel{display:block!important}
+  .tab-panel:not(.active){display:none!important}
+  .rpt-wrap,.rpt-table{box-shadow:none;border:1px solid #ccc}
+}
+@media(max-width:1200px){.kpi-row{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:900px){.sidebar{display:none}.main{margin-left:0}.content{padding:20px}.topbar{padding:13px 20px}.grid-2,.grid-3,.kpi-row,.rpt-stats{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.grid-2,.grid-3,.kpi-row,.rpt-stats{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-tag">Procurement</div>
+    <div class="logo-name">Build<span class="logo-dot">Pro</span></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-sec">Main</div>
+    <a class="nav-item active" href="reports-analytics.html">Reports &amp; Analytics</a>
+    <a class="nav-item" href="material-indent.html">Material Indent</a>
+    <a class="nav-item" href="approval-workflow.html">Approval Workflow</a>
+    <a class="nav-item" href="quotations.html">Quotations</a>
+    <a class="nav-item" href="purchase-orders.html">Purchase Orders</a>
+    <a class="nav-item" href="delivery-grn.html">Delivery &amp; GRN</a>
+    <a class="nav-item" href="invoice-payment.html">QS &amp; Invoices</a>
+    <div class="nav-sec">Manage</div>
+    <a class="nav-item" href="settings.html">Settings</a><div class="nav-section">Suite</div><a class="nav-item" href="tqs.html" target="_blank" style="color:#f59e0b;font-weight:600">&#11088; TQS Bill Tracker</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-row">
+      <div class="uav" id="user-avatar">PM</div>
+      <div>
+        <div class="uname" id="user-name">User</div>
+        <div class="urole" id="user-role">Procurement</div>
+      </div>
+    </div>
+    <div class="proj-pill"><span class="pdot"></span><span id="project-name">Active Project</span></div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div>
+      <span class="bc">BuildPro</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-cur">Reports &amp; Analytics</span>
+    </div>
+    <div style="display:flex;gap:8px" class="no-print">
+      <button class="btn" type="button" onclick="exportCsv()">&#8595; Export CSV</button>
+      <button class="btn" type="button" onclick="loadDashboard()">Refresh</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div>
+      <div class="page-title">Reports &amp; Analytics</div>
+      <div class="page-sub">Live procurement data across indents, sourcing, purchase orders, receipts, and invoices.</div>
+    </div>
+
+    <div id="error-banner" class="error-banner" style="display:none;margin-top:16px"></div>
+
+    <!-- Tab bar -->
+    <div class="tab-bar no-print">
+      <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">Overview</button>
+      <button class="tab-btn" data-tab="indents" onclick="switchTab('indents')">Indents</button>
+      <button class="tab-btn" data-tab="pos" onclick="switchTab('pos')">Purchase Orders</button>
+      <button class="tab-btn" data-tab="grn" onclick="switchTab('grn')">GRN / Receipts</button>
+      <button class="tab-btn" data-tab="invoices" onclick="switchTab('invoices')">Invoices</button>
+    </div>
+
+    <!-- ===== OVERVIEW TAB ===== -->
+    <div class="tab-panel active" id="tab-overview">
+      <div class="kpi-row">
+        <div class="card"><div class="kpi-label">Open indents</div><div class="kpi-value" id="k-indents">—</div><div class="kpi-sub">Pending or escalated approvals</div></div>
+        <div class="card"><div class="kpi-label">Approved for sourcing</div><div class="kpi-value" id="k-approved">—</div><div class="kpi-sub">Ready or already sourced</div></div>
+        <div class="card"><div class="kpi-label">Quotations</div><div class="kpi-value" id="k-quotes">—</div><div class="kpi-sub">Vendor quotes submitted</div></div>
+        <div class="card"><div class="kpi-label">PO value</div><div class="kpi-value" id="k-po-value">—</div><div class="kpi-sub">Committed purchase amount</div></div>
+        <div class="card"><div class="kpi-label">Received qty</div><div class="kpi-value" id="k-grn">—</div><div class="kpi-sub">Across all GRNs</div></div>
+        <div class="card"><div class="kpi-label">QS value</div><div class="kpi-value" id="k-qs">—</div><div class="kpi-sub">Certified quantity value</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="chart-card"><div class="cc-title">Workflow status mix</div><div class="cc-sub">Current record counts across the procurement lifecycle.</div><canvas id="status-chart"></canvas></div>
+        <div class="chart-card"><div class="cc-title">Spend by vendor</div><div class="cc-sub">PO value grouped by vendor.</div><canvas id="vendor-chart"></canvas></div>
+      </div>
+      <div class="grid-2">
+        <div class="chart-card"><div class="cc-title">Procurement funnel</div><div class="cc-sub">How records progress from indent to QS certification.</div><canvas id="funnel-chart"></canvas></div>
+        <div class="list-card"><div class="list-title">Certification health</div><div id="cert-health"></div></div>
+      </div>
+      <div class="grid-3">
+        <div class="list-card"><div class="list-title">Top vendors by PO value</div><div id="vendor-list"></div></div>
+        <div class="list-card"><div class="list-title">Recent receipts</div><div id="grn-list"></div></div>
+        <div class="list-card"><div class="list-title">Recent QS certifications</div><div id="qs-list"></div></div>
+      </div>
+    </div>
+
+    <!-- ===== INDENTS TAB ===== -->
+    <div class="tab-panel" id="tab-indents">
+      <div class="rpt-stats" id="indent-stats"></div>
+      <div class="filter-bar no-print">
+        <input class="filter-input" id="indent-search" placeholder="Search ID, material, raised by…" oninput="renderIndentReport()">
+        <select class="filter-input" id="indent-status-filter" onchange="renderIndentReport()">
+          <option value="">All Status</option>
+          <option>Pending</option>
+          <option>Escalated</option>
+          <option>Approved</option>
+          <option>Rejected</option>
+          <option>PO Raised</option>
+        </select>
+        <select class="filter-input" id="indent-priority-filter" onchange="renderIndentReport()">
+          <option value="">All Priority</option>
+          <option>High</option>
+          <option>Medium</option>
+          <option>Low</option>
+        </select>
+        <button class="btn no-print" onclick="window.print()">&#128438; Print</button>
+      </div>
+      <div class="rpt-wrap">
+        <table class="rpt-table">
+          <thead><tr><th>Indent ID</th><th>Material</th><th>Qty / Unit</th><th>Raised By</th><th>Project</th><th>Priority</th><th>Status</th><th>Required Date</th></tr></thead>
+          <tbody id="indent-tbody"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== PURCHASE ORDERS TAB ===== -->
+    <div class="tab-panel" id="tab-pos">
+      <div class="rpt-stats" id="po-stats"></div>
+      <div class="filter-bar no-print">
+        <input class="filter-input" id="po-search" placeholder="Search ID, vendor, material…" oninput="renderPoReport()">
+        <select class="filter-input" id="po-status-filter" onchange="renderPoReport()">
+          <option value="">All Status</option>
+          <option>Pending</option>
+          <option>Approved</option>
+          <option>Dispatched</option>
+          <option>Completed</option>
+          <option>Cancelled</option>
+        </select>
+        <button class="btn no-print" onclick="window.print()">&#128438; Print</button>
+      </div>
+      <div class="rpt-wrap">
+        <table class="rpt-table">
+          <thead><tr><th>PO ID</th><th>Vendor</th><th>Material</th><th>Qty / Unit</th><th>Total (Rs)</th><th>Status</th><th>Created</th></tr></thead>
+          <tbody id="po-tbody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== GRN TAB ===== -->
+    <div class="tab-panel" id="tab-grn">
+      <div class="rpt-stats" id="grn-stats"></div>
+      <div class="filter-bar no-print">
+        <input class="filter-input" id="grn-search" placeholder="Search ID, vendor, material…" oninput="renderGrnReport()">
+        <select class="filter-input" id="grn-status-filter" onchange="renderGrnReport()">
+          <option value="">All Status</option>
+          <option>Pending</option>
+          <option>Received</option>
+          <option>Partial</option>
+          <option>Rejected</option>
+        </select>
+        <button class="btn no-print" onclick="window.print()">&#128438; Print</button>
+      </div>
+      <div class="rpt-wrap">
+        <table class="rpt-table">
+          <thead><tr><th>GRN ID</th><th>PO ID</th><th>Vendor</th><th>Material</th><th>Received Qty</th><th>Unit</th><th>Quality</th><th>Status</th><th>Date</th></tr></thead>
+          <tbody id="grn-tbody"><tr><td colspan="9" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== INVOICES TAB ===== -->
+    <div class="tab-panel" id="tab-invoices">
+      <div class="rpt-stats" id="invoice-stats"></div>
+      <div class="filter-bar no-print">
+        <input class="filter-input" id="invoice-search" placeholder="Search ID, vendor, material…" oninput="renderInvoiceReport()">
+        <select class="filter-input" id="invoice-status-filter" onchange="renderInvoiceReport()">
+          <option value="">All Status</option>
+          <option>Pending</option>
+          <option>Approved</option>
+          <option>On Hold</option>
+          <option>Paid</option>
+        </select>
+        <button class="btn no-print" onclick="window.print()">&#128438; Print</button>
+      </div>
+      <div class="rpt-wrap">
+        <table class="rpt-table">
+          <thead><tr><th>Invoice ID</th><th>Vendor</th><th>Material</th><th>PO ID</th><th>GRN ID</th><th>Amount (Rs)</th><th>Status</th><th>Date</th></tr></thead>
+          <tbody id="invoice-tbody"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+</div>
+
+<script src="auth.js"></script>
+<script>
+const session = requireAuth('login.html');
+const API = `${window.location.origin}/api`;
+let charts = {};
+const byId = (id) => document.getElementById(id);
+const inr = (n) => `Rs ${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+const fmtDate = (v) => { const d = new Date(v); return Number.isNaN(d.getTime()) ? esc(v) : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); };
+
+async function fetchJson(url) {
+  const response = await fetch(url, { headers: authHeaders() });
+  const payload = await response.json().catch(() => ({}));
+  if (response.status === 401) { handleUnauthorized(); return null; }
+  if (!response.ok || !payload.success) throw new Error(payload.error || 'Request failed');
+  return payload.data;
+}
+
+function syncUser() {
+  byId('user-avatar').textContent = session.initials || 'PM';
+  byId('user-name').textContent = session.name || 'Procurement User';
+  byId('user-role').textContent = (session.role || 'PROCUREMENT').replaceAll('_', ' ');
+  byId('project-name').textContent = session.project || 'Active Project';
+}
+
+function showError(msg) {
+  const el = byId('error-banner');
+  el.textContent = 'Failed to load data: ' + msg;
+  el.style.display = 'block';
+}
+
+function hideError() { byId('error-banner').style.display = 'none'; }
+
+// ---- TAB SWITCHING ----
+let _currentTab = 'overview';
+function switchTab(tab) {
+  _currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tab));
+  if (tab === 'indents') renderIndentReport();
+  else if (tab === 'pos') renderPoReport();
+  else if (tab === 'grn') renderGrnReport();
+  else if (tab === 'invoices') renderInvoiceReport();
+}
+
+// ---- BADGE ----
+function badge(status) {
+  if (!status) return '<span class="muted">—</span>';
+  const cls = {
+    'Pending': 'b-pending', 'Escalated': 'b-escalated',
+    'Approved': 'b-approved', 'Certified': 'b-approved', 'Received': 'b-approved', 'Paid': 'b-approved',
+    'Rejected': 'b-rejected', 'Cancelled': 'b-rejected',
+    'PO Raised': 'b-po-raised', 'Dispatched': 'b-po-raised', 'On Hold': 'b-on-hold',
+    'Submitted': 'b-submitted', 'Partial': 'b-escalated'
+  };
+  return `<span class="badge ${cls[status] || 'b-default'}">${esc(status)}</span>`;
+}
+
+// ---- STATS ROW ----
+function statsRow(containerId, items) {
+  byId(containerId).innerHTML = items.map(s => `
+    <div class="rpt-stat">
+      <div class="rpt-stat-label">${esc(s.label)}</div>
+      <div class="rpt-stat-value" style="color:${s.color || 'var(--text)'}">${s.value}</div>
+    </div>`).join('');
+}
+
+// ---- INDENT REPORT ----
+function renderIndentReport() {
+  const rows = _rptData.indents;
+  const search = (byId('indent-search')?.value || '').toLowerCase();
+  const statusF = byId('indent-status-filter')?.value || '';
+  const priorityF = byId('indent-priority-filter')?.value || '';
+
+  const filtered = rows.filter(r => {
+    if (statusF && r.status !== statusF) return false;
+    if (priorityF && r.priority !== priorityF) return false;
+    if (search && !`${r.id} ${r.material} ${r.raisedBy} ${r.project}`.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  statsRow('indent-stats', [
+    { label: 'Total', value: filtered.length },
+    { label: 'Pending', value: filtered.filter(r => r.status === 'Pending').length, color: 'var(--rust)' },
+    { label: 'Approved', value: filtered.filter(r => ['Approved', 'PO Raised'].includes(r.status)).length, color: 'var(--forest)' },
+    { label: 'Rejected', value: filtered.filter(r => r.status === 'Rejected').length, color: '#c0392b' },
+    { label: 'Escalated', value: filtered.filter(r => r.status === 'Escalated').length, color: 'var(--plum)' }
+  ]);
+
+  if (!filtered.length) {
+    byId('indent-tbody').innerHTML = '<tr><td colspan="8" class="empty">No records match your filter.</td></tr>';
+    return;
+  }
+  byId('indent-tbody').innerHTML = filtered.map(r => `
+    <tr>
+      <td class="mono" style="font-size:11px">${esc(r.id)}</td>
+      <td><strong>${esc(r.material)}</strong></td>
+      <td class="mono">${r.qty} <span class="muted">${esc(r.unit)}</span></td>
+      <td>${esc(r.raisedBy)}</td>
+      <td>${esc(r.project)}</td>
+      <td>${badge(r.priority)}</td>
+      <td>${badge(r.status)}</td>
+      <td class="muted">${r.date || '—'}</td>
+    </tr>`).join('');
+}
+
+// ---- PO REPORT ----
+function renderPoReport() {
+  const rows = _rptData.pos;
+  const search = (byId('po-search')?.value || '').toLowerCase();
+  const statusF = byId('po-status-filter')?.value || '';
+
+  const filtered = rows.filter(r => {
+    if (statusF && r.status !== statusF) return false;
+    if (search && !`${r.id} ${r.vendorName} ${r.material}`.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  const totalValue = filtered.reduce((s, r) => s + Number(r.total || 0), 0);
+  statsRow('po-stats', [
+    { label: 'Total POs', value: filtered.length },
+    { label: 'Total Value', value: inr(totalValue) },
+    { label: 'Pending', value: filtered.filter(r => r.status === 'Pending').length, color: 'var(--rust)' },
+    { label: 'Approved', value: filtered.filter(r => r.status === 'Approved').length, color: 'var(--forest)' },
+    { label: 'Completed', value: filtered.filter(r => r.status === 'Completed').length, color: 'var(--navy)' }
+  ]);
+
+  if (!filtered.length) {
+    byId('po-tbody').innerHTML = '<tr><td colspan="7" class="empty">No records match your filter.</td></tr>';
+    return;
+  }
+  byId('po-tbody').innerHTML = filtered.map(r => `
+    <tr>
+      <td class="mono" style="font-size:11px">${esc(r.id)}</td>
+      <td><strong>${esc(r.vendorName)}</strong></td>
+      <td>${esc(r.material)}</td>
+      <td class="mono">${r.qty} <span class="muted">${esc(r.unit)}</span></td>
+      <td class="mono"><strong>${inr(r.total)}</strong></td>
+      <td>${badge(r.status)}</td>
+      <td class="muted">${fmtDate(r.created_at)}</td>
+    </tr>`).join('');
+}
+
+// ---- GRN REPORT ----
+function renderGrnReport() {
+  const rows = _rptData.grns;
+  const search = (byId('grn-search')?.value || '').toLowerCase();
+  const statusF = byId('grn-status-filter')?.value || '';
+
+  const filtered = rows.filter(r => {
+    if (statusF && r.status !== statusF) return false;
+    if (search && !`${r.id} ${r.vendorName} ${r.material} ${r.poId}`.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  const totalQty = filtered.reduce((s, r) => s + Number(r.receivedQty || 0), 0);
+  statsRow('grn-stats', [
+    { label: 'Total GRNs', value: filtered.length },
+    { label: 'Total Qty Received', value: totalQty.toLocaleString('en-IN') },
+    { label: 'Pending', value: filtered.filter(r => r.status === 'Pending').length, color: 'var(--rust)' },
+    { label: 'Received', value: filtered.filter(r => r.status === 'Received').length, color: 'var(--forest)' },
+    { label: 'Partial', value: filtered.filter(r => r.status === 'Partial').length, color: 'var(--plum)' }
+  ]);
+
+  if (!filtered.length) {
+    byId('grn-tbody').innerHTML = '<tr><td colspan="9" class="empty">No records match your filter.</td></tr>';
+    return;
+  }
+  byId('grn-tbody').innerHTML = filtered.map(r => `
+    <tr>
+      <td class="mono" style="font-size:11px">${esc(r.id)}</td>
+      <td class="mono" style="font-size:11px">${esc(r.poId)}</td>
+      <td><strong>${esc(r.vendorName)}</strong></td>
+      <td>${esc(r.material)}</td>
+      <td class="mono"><strong>${r.receivedQty}</strong></td>
+      <td class="muted">${esc(r.unit)}</td>
+      <td>${badge(r.qualityStatus)}</td>
+      <td>${badge(r.status)}</td>
+      <td class="muted">${fmtDate(r.created_at)}</td>
+    </tr>`).join('');
+}
+
+// ---- INVOICE REPORT ----
+function renderInvoiceReport() {
+  const rows = _rptData.invoices;
+  const search = (byId('invoice-search')?.value || '').toLowerCase();
+  const statusF = byId('invoice-status-filter')?.value || '';
+
+  const filtered = rows.filter(r => {
+    if (statusF && r.status !== statusF) return false;
+    if (search && !`${r.id} ${r.vendorName} ${r.material} ${r.poId}`.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  const totalAmt = filtered.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const paidAmt = filtered.filter(r => r.status === 'Paid').reduce((s, r) => s + Number(r.amount || 0), 0);
+  statsRow('invoice-stats', [
+    { label: 'Total Invoices', value: filtered.length },
+    { label: 'Total Amount', value: inr(totalAmt) },
+    { label: 'Paid', value: filtered.filter(r => r.status === 'Paid').length, color: 'var(--forest)' },
+    { label: 'Paid Amount', value: inr(paidAmt), color: 'var(--forest)' },
+    { label: 'Pending', value: filtered.filter(r => r.status === 'Pending').length, color: 'var(--rust)' }
+  ]);
+
+  if (!filtered.length) {
+    byId('invoice-tbody').innerHTML = '<tr><td colspan="8" class="empty">No records match your filter.</td></tr>';
+    return;
+  }
+  byId('invoice-tbody').innerHTML = filtered.map(r => `
+    <tr>
+      <td class="mono" style="font-size:11px">${esc(r.id)}</td>
+      <td><strong>${esc(r.vendorName)}</strong></td>
+      <td>${esc(r.material)}</td>
+      <td class="mono" style="font-size:11px">${esc(r.poId || '—')}</td>
+      <td class="mono" style="font-size:11px">${esc(r.grnId || '—')}</td>
+      <td class="mono"><strong>${inr(r.amount)}</strong></td>
+      <td>${badge(r.status)}</td>
+      <td class="muted">${fmtDate(r.created_at)}</td>
+    </tr>`).join('');
+}
+
+// ---- OVERVIEW HELPERS ----
+function destroyCharts() { Object.values(charts).forEach(c => c && c.destroy && c.destroy()); charts = {}; }
+
+function renderList(id, items, emptyText) {
+  const el = byId(id);
+  if (!el) return;
+  el.innerHTML = items.length ? items.join('') : `<div class="empty">${emptyText}</div>`;
+}
+
+function renderCertificationHealth(qs) {
+  const sum = (status) => qs.filter(r => r.status === status).reduce((s, r) => s + Number(r.certifiedAmount || 0), 0);
+  byId('cert-health').innerHTML = `
+    <div class="list-item"><span>Draft value</span><strong class="mono">${inr(sum('Draft'))}</strong></div>
+    <div class="list-item"><span>Submitted</span><strong class="mono">${inr(sum('Submitted'))}</strong></div>
+    <div class="list-item"><span>Certified</span><strong class="mono">${inr(sum('Certified'))}</strong></div>
+    <div class="list-item"><span>Rework required</span><strong class="mono">${inr(sum('Rework Required'))}</strong></div>`;
+}
+
+function buildCharts(data) {
+  destroyCharts();
+  charts.status = new Chart(byId('status-chart'), {
+    type: 'doughnut',
+    data: { labels: ['Pending', 'Escalated', 'Approved', 'POs', 'GRNs', 'QS certs'], datasets: [{ data: data.statusMix, backgroundColor: ['#B8430A', '#6B1A5A', '#1A6B3A', '#1A3B6B', '#8B6914', '#D490C8'], borderWidth: 0 }] },
+    options: { plugins: { legend: { position: 'bottom' } }, cutout: '62%' }
+  });
+  charts.vendor = new Chart(byId('vendor-chart'), {
+    type: 'bar',
+    data: { labels: data.vendorSpend.labels, datasets: [{ label: 'PO value', data: data.vendorSpend.values, backgroundColor: '#1A3B6B', borderRadius: 6 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+  charts.funnel = new Chart(byId('funnel-chart'), {
+    type: 'bar',
+    data: { labels: ['Indents', 'Approved', 'Quotes', 'POs', 'GRNs', 'QS'], datasets: [{ data: data.funnel, backgroundColor: ['#B8430A', '#1A6B3A', '#8B6914', '#1A3B6B', '#6B1A5A', '#D490C8'], borderRadius: 6 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+}
+
+function renderOverview(data) {
+  byId('k-indents').textContent = String(data.openIndents);
+  byId('k-approved').textContent = String(data.approvedIndents);
+  byId('k-quotes').textContent = String(data.quotations.length);
+  byId('k-po-value').textContent = inr(data.poValue);
+  byId('k-grn').textContent = String(data.receivedQty);
+  byId('k-qs').textContent = inr(data.qsValue);
+  renderCertificationHealth(data.qs);
+  renderList('vendor-list', data.topVendors.map((r, i) => `
+    <div class="list-item">
+      <div><strong>${i + 1}. ${esc(r.name)}</strong><div class="muted">${r.count} PO(s)</div></div>
+      <span class="mono">${inr(r.value)}</span>
+    </div>`), 'No vendors yet.');
+  renderList('grn-list', data.recentGrns.map(r => `
+    <div class="list-item">
+      <div><strong>${esc(r.material)}</strong><div class="muted">${esc(r.vendorName)} &middot; ${r.receivedQty} ${esc(r.unit)}</div></div>
+      <span class="mono muted">${fmtDate(r.created_at)}</span>
+    </div>`), 'No GRNs yet.');
+  renderList('qs-list', data.recentQs.map(r => `
+    <div class="list-item">
+      <div><strong>${esc(r.id)}</strong><div class="muted">${esc(r.vendorName)} &middot; ${esc(r.status)}</div></div>
+      <span class="mono">${inr(r.certifiedAmount)}</span>
+    </div>`), 'No QS certifications yet.');
+  buildCharts(data);
+}
+
+// ---- DATA STORE ----
+let _rptData = { indents: [], pos: [], grns: [], invoices: [], quotations: [], qs: [] };
+
+// ---- LOAD ALL DATA ----
+async function loadDashboard() {
+  hideError();
+  try {
+    const [indents, quotations, pos, grns, qs, invoices] = await Promise.all([
+      fetchJson(`${API}/indents`),
+      fetchJson(`${API}/quotations`),
+      fetchJson(`${API}/pos`),
+      fetchJson(`${API}/grn`),
+      fetchJson(`${API}/qs-certifications`),
+      fetchJson(`${API}/invoices`).catch(() => [])
+    ]);
+
+    _rptData = {
+      indents: indents || [],
+      pos: pos || [],
+      grns: grns || [],
+      invoices: invoices || [],
+      quotations: quotations || [],
+      qs: qs || []
+    };
+
+    const i = _rptData.indents;
+    const openIndents = i.filter(r => ['Pending', 'Escalated'].includes(r.status)).length;
+    const approvedIndents = i.filter(r => ['Approved', 'PO Raised'].includes(r.status)).length;
+    const poValue = _rptData.pos.reduce((s, r) => s + Number(r.total || 0), 0);
+    const receivedQty = _rptData.grns.reduce((s, r) => s + Number(r.receivedQty || 0), 0);
+    const qsValue = _rptData.qs.reduce((s, r) => s + Number(r.certifiedAmount || 0), 0);
+
+    const vendorSpendMap = new Map();
+    _rptData.pos.forEach(r => {
+      const cur = vendorSpendMap.get(r.vendorName) || { name: r.vendorName, value: 0, count: 0 };
+      cur.value += Number(r.total || 0); cur.count += 1;
+      vendorSpendMap.set(r.vendorName, cur);
+    });
+    const topVendors = [...vendorSpendMap.values()].sort((a, b) => b.value - a.value).slice(0, 5);
+
+    renderOverview({
+      quotations: _rptData.quotations, qs: _rptData.qs,
+      openIndents, approvedIndents, poValue, receivedQty, qsValue,
+      statusMix: [
+        i.filter(r => r.status === 'Pending').length,
+        i.filter(r => r.status === 'Escalated').length,
+        approvedIndents,
+        _rptData.pos.length, _rptData.grns.length, _rptData.qs.length
+      ],
+      vendorSpend: { labels: topVendors.map(r => r.name), values: topVendors.map(r => r.value) },
+      funnel: [i.length, approvedIndents, _rptData.quotations.length, _rptData.pos.length, _rptData.grns.length, _rptData.qs.length],
+      topVendors,
+      recentGrns: [..._rptData.grns].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5),
+      recentQs: [..._rptData.qs].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5)
+    });
+
+    // Re-render active report tab if not overview
+    if (_currentTab === 'indents') renderIndentReport();
+    else if (_currentTab === 'pos') renderPoReport();
+    else if (_currentTab === 'grn') renderGrnReport();
+    else if (_currentTab === 'invoices') renderInvoiceReport();
+
+  } catch (err) {
+    showError(err.message);
+    console.error(err);
+  }
+}
+
+// ---- CSV EXPORT ----
+function exportCsv() {
+  const wb = [
+    ['--- PURCHASE ORDERS ---'],
+    ['PO ID', 'Vendor', 'Material', 'Qty', 'Unit', 'Total (Rs)', 'Status', 'Created'],
+    ..._rptData.pos.map(p => [p.id, p.vendorName, p.material, p.qty, p.unit, p.total, p.status, (p.created_at || '').slice(0, 10)]),
+    [],
+    ['--- MATERIAL INDENTS ---'],
+    ['Indent ID', 'Material', 'Qty', 'Unit', 'Raised By', 'Project', 'Priority', 'Status', 'Required Date'],
+    ..._rptData.indents.map(i => [i.id, i.material, i.qty, i.unit, i.raisedBy, i.project, i.priority, i.status, i.date]),
+    [],
+    ['--- GRNs ---'],
+    ['GRN ID', 'PO ID', 'Vendor', 'Material', 'Received Qty', 'Unit', 'Quality', 'Status', 'Date'],
+    ..._rptData.grns.map(g => [g.id, g.poId, g.vendorName, g.material, g.receivedQty, g.unit, g.qualityStatus, g.status, (g.created_at || '').slice(0, 10)]),
+    [],
+    ['--- INVOICES ---'],
+    ['Invoice ID', 'Vendor', 'Material', 'PO ID', 'GRN ID', 'Amount (Rs)', 'Status', 'Created'],
+    ..._rptData.invoices.map(i => [i.id, i.vendorName, i.material, i.poId || '', i.grnId || '', i.amount, i.status, (i.created_at || '').slice(0, 10)])
+  ];
+  const csv = wb.map(r => r.map(v => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
+  a.download = 'buildpro-report.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+syncUser();
+loadDashboard();
+</script>
+</body>
+</html>

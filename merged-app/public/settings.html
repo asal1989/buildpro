@@ -1,0 +1,1423 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings â⬝ Procurement Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F5F3EF;
+    --surface: #FFFFFF;
+    --surface2: #F0EDE8;
+    --border: #E2DDD6;
+    --border-strong: #C8C2B8;
+    --text: #1C1A17;
+    --text-2: #6B6560;
+    --text-3: #A09A93;
+    --accent: #C17B3A;
+    --accent-bg: #FDF3E7;
+    --accent-border: #E8C49A;
+    --blue: #2D6FA8;
+    --blue-bg: #EEF4FB;
+    --blue-border: #A8C8E8;
+    --green: #2A7A4B;
+    --green-bg: #EBF5EF;
+    --green-border: #9DD4B3;
+    --red: #B83A3A;
+    --red-bg: #FBEEEE;
+    --red-border: #E8AAAA;
+    --warning: #8A6A1A;
+    --warning-bg: #FBF5E6;
+    --warning-border: #DFC88A;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .layout { display: flex; min-height: 100vh; }
+
+  /* â⬝â⬝ Sidebar â⬝â⬝ */
+  .sidebar {
+    width: 220px; min-width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 10;
+  }
+  .sidebar-logo { padding: 18px 18px 14px; border-bottom: 1px solid var(--border); }
+  .logo-tag { font-size: 9px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+  .logo-name { font-size: 17px; font-weight: 600; color: var(--text); margin-top: 2px; }
+  .logo-dot { color: var(--accent); }
+  .sidebar-nav { flex: 1; padding: 10px 8px; overflow-y: auto; }
+  .nav-group-label { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); padding: 10px 10px 4px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 10px; border-radius: var(--radius-sm);
+    font-size: 12.5px; font-weight: 400; color: var(--text-2);
+    cursor: pointer; transition: all 0.13s; margin-bottom: 1px;
+    text-decoration: none;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: var(--accent-bg); color: var(--accent); font-weight: 500; }
+  .nav-item svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.65; }
+  .nav-item.active svg { opacity: 1; }
+  .sidebar-footer { padding: 12px 14px; border-top: 1px solid var(--border); }
+  .user-row { display: flex; align-items: center; gap: 9px; }
+  .user-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--accent-bg); border: 1px solid var(--accent-border); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--accent); flex-shrink: 0; }
+  .user-name { font-size: 12.5px; font-weight: 500; color: var(--text); }
+  .user-role { font-size: 10.5px; color: var(--text-3); }
+  .project-pill { display: flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 4px 10px 4px 8px; font-size: 10.5px; color: var(--text-2); margin-top: 8px; cursor: pointer; }
+  .project-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+  /* â⬝â⬝ Main â⬝â⬝ */
+  .main { margin-left: 220px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* â⬝â⬝ Topbar â⬝â⬝ */
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; align-items: center; gap: 14px; position: sticky; top: 0; z-index: 5; }
+  .topbar-breadcrumb { display: flex; align-items: center; gap: 6px; flex: 1; }
+  .bc-link { font-size: 13px; color: var(--text-3); cursor: pointer; text-decoration: none; }
+  .bc-link:hover { color: var(--text-2); }
+  .bc-sep { color: var(--text-3); font-size: 12px; }
+  .bc-current { font-size: 13px; font-weight: 500; color: var(--text); }
+
+  /* â⬝â⬝ Content â⬝â⬝ */
+  .content { display: flex; flex: 1; }
+
+  /* â⬝â⬝ Settings sidebar â⬝â⬝ */
+  .settings-nav {
+    width: 200px; min-width: 200px;
+    border-right: 1px solid var(--border);
+    padding: 20px 12px;
+    background: var(--surface);
+  }
+  .settings-nav-group { margin-bottom: 20px; }
+  .sn-group-label { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); padding: 0 10px 6px; }
+  .sn-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: var(--radius-sm);
+    font-size: 12.5px; color: var(--text-2);
+    cursor: pointer; transition: all 0.13s; margin-bottom: 1px;
+  }
+  .sn-item:hover { background: var(--surface2); color: var(--text); }
+  .sn-item.active { background: var(--accent-bg); color: var(--accent); font-weight: 500; }
+  .sn-item svg { width: 13px; height: 13px; flex-shrink: 0; opacity: 0.6; }
+  .sn-item.active svg { opacity: 1; }
+
+  /* â⬝â⬝ Settings panels â⬝â⬝ */
+  .settings-body { flex: 1; padding: 28px; overflow-y: auto; }
+  .settings-panel { display: none; }
+  .settings-panel.active { display: block; }
+
+  .panel-header { margin-bottom: 24px; }
+  .panel-title { font-size: 18px; font-weight: 600; color: var(--text); }
+  .panel-sub { font-size: 13px; color: var(--text-2); margin-top: 3px; }
+
+  /* â⬝â⬝ Cards â⬝â⬝ */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    margin-bottom: 20px; overflow: hidden;
+  }
+  .card-header {
+    padding: 16px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .card-sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .card-body { padding: 20px; }
+
+  /* â⬝â⬝ Buttons â⬝â⬝ */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500;
+    padding: 8px 16px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong); background: var(--surface);
+    color: var(--text); cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .btn:hover { background: var(--surface2); }
+  .btn-primary { background: var(--text); color: var(--surface); border-color: var(--text); }
+  .btn-primary:hover { background: #333; }
+  .btn-accent { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-accent:hover { background: #a86830; }
+  .btn-ghost { border-color: transparent; background: transparent; }
+  .btn-ghost:hover { background: var(--surface2); }
+  .btn-danger { background: var(--red-bg); color: var(--red); border-color: var(--red-border); }
+  .btn-danger:hover { background: #f5d8d8; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn svg { width: 13px; height: 13px; }
+
+  /* â⬝â⬝ Forms â⬝â⬝ */
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+  .form-row.full { grid-template-columns: 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; }
+  .form-group:last-child { margin-bottom: 0; }
+  .form-label { font-size: 12px; font-weight: 500; color: var(--text-2); }
+  .form-label span { color: var(--red); margin-left: 2px; }
+  .form-input, .form-select, .form-textarea {
+    padding: 9px 12px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); font-family: 'Outfit', sans-serif;
+    font-size: 13px; color: var(--text); background: var(--surface);
+    outline: none; transition: border-color 0.15s; width: 100%;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--accent); box-shadow: 0 0 0 3px rgba(193,123,58,0.1);
+  }
+  .form-input::placeholder, .form-textarea::placeholder { color: var(--text-3); }
+  .form-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23A09A93' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; cursor: pointer;
+  }
+  .form-hint { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+  .form-textarea { resize: vertical; min-height: 72px; }
+
+  /* â⬝â⬝ Table â⬝â⬝ */
+  .table-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { background: var(--surface2); }
+  th { text-align: left; padding: 10px 14px; font-size: 10.5px; font-weight: 600; color: var(--text-3); letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th:first-child { padding-left: 18px; }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+  td:first-child { padding-left: 18px; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #FAFAF8; }
+  .td-mono { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--text-3); }
+
+  /* â⬝â⬝ Badges â⬝â⬝ */
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 2px 9px; border-radius: 20px; }
+  .badge-green  { background: var(--green-bg);   color: var(--green);   border: 1px solid var(--green-border); }
+  .badge-red    { background: var(--red-bg);     color: var(--red);     border: 1px solid var(--red-border); }
+  .badge-blue   { background: var(--blue-bg);    color: var(--blue);    border: 1px solid var(--blue-border); }
+  .badge-amber  { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
+  .badge-gray   { background: var(--surface2);   color: var(--text-3);  border: 1px solid var(--border); }
+
+  /* â⬝â⬝ Row actions â⬝â⬝ */
+  .row-actions { display: flex; gap: 6px; opacity: 0; transition: opacity 0.15s; }
+  tr:hover .row-actions { opacity: 1; }
+  .row-btn { font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); cursor: pointer; transition: all 0.15s; }
+  .row-btn:hover { background: var(--surface2); }
+  .row-btn.danger { color: var(--red); border-color: var(--red-border); background: var(--red-bg); }
+  .row-btn.danger:hover { background: #f5d8d8; }
+
+  /* â⬝â⬝ Toggle switch â⬝â⬝ */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .toggle-row:first-child { padding-top: 0; }
+  .toggle-info { flex: 1; }
+  .toggle-label { font-size: 13px; font-weight: 500; color: var(--text); }
+  .toggle-desc  { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0; border-radius: 20px;
+    background: var(--border-strong); cursor: pointer; transition: background 0.2s;
+  }
+  .toggle-slider::before {
+    content: ''; position: absolute; width: 14px; height: 14px;
+    left: 3px; top: 3px; border-radius: 50%; background: white;
+    transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle input:checked + .toggle-slider { background: var(--accent); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+  /* â⬝â⬝ Avatar â⬝â⬝ */
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; flex-shrink: 0;
+  }
+  .av-director  { background: #EDE9F7; color: #5B4FA8; }
+  .av-manager   { background: var(--accent-bg); color: var(--accent); }
+  .av-engineer  { background: var(--blue-bg);  color: var(--blue); }
+  .av-supervisor { background: var(--green-bg); color: var(--green); }
+
+  /* â⬝â⬝ Role badge â⬝â⬝ */
+  .role-tag { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.04em; }
+  .role-DIRECTOR         { background: #EDE9F7; color: #5B4FA8; }
+  .role-PURCHASE_MANAGER { background: var(--accent-bg); color: var(--accent); }
+  .role-SITE_ENGINEER    { background: var(--blue-bg);   color: var(--blue); }
+  .role-SUPERVISOR       { background: var(--green-bg);  color: var(--green); }
+  .role-ACCOUNTANT       { background: var(--warning-bg); color: var(--warning); }
+  .role-QUANTITY_SURVEYOR   { background: #E0F5F1; color: #0F7A63; }
+  .role-DOCUMENT_CONTROLLER { background: #EAE8F7; color: #4A3FA8; }
+  .role-ACCOUNTS            { background: #FFF0E0; color: #C05C00; }
+
+  /* â⬝â⬝ Info grid â⬝â⬝ */
+  .info-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+  .info-item { padding: 14px; background: var(--surface2); border-radius: var(--radius-sm); }
+  .info-label { font-size: 10.5px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; }
+  .info-value { font-size: 15px; font-weight: 600; color: var(--text); margin-top: 3px; font-family: 'IBM Plex Mono', monospace; }
+
+  /* â⬝â⬝ Modal â⬝â⬝ */
+  .overlay { position: fixed; inset: 0; background: rgba(28,26,23,0.45); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: 14px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-md); animation: slideUp 0.2s ease; }
+  @keyframes slideUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+  .modal-header { padding: 20px 22px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; position: sticky; top: 0; background: var(--surface); z-index: 1; }
+  .modal-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .modal-sub   { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .modal-close { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 15px; transition: all 0.15s; }
+  .modal-close:hover { background: var(--surface2); color: var(--text); }
+  .modal-body { padding: 20px 22px; }
+  .modal-footer { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; position: sticky; bottom: 0; background: var(--surface); }
+
+  /* â⬝â⬝ Toast â⬝â⬝ */
+  .toast { position: fixed; bottom: 24px; right: 24px; z-index: 200; background: var(--text); color: white; border-radius: var(--radius); padding: 13px 17px; font-size: 13px; font-weight: 500; box-shadow: var(--shadow-md); display: flex; align-items: center; gap: 10px; transform: translateY(80px); opacity: 0; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); pointer-events: none; max-width: 360px; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast-icon { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+  /* â⬝â⬝ Danger zone â⬝â⬝ */
+  .danger-zone { border: 1px solid var(--red-border); border-radius: var(--radius); overflow: hidden; }
+  .danger-zone .card-header { background: var(--red-bg); border-bottom-color: var(--red-border); }
+  .danger-zone .card-title { color: var(--red); }
+  .danger-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--red-border); gap: 20px; }
+  .danger-item:last-child { border-bottom: none; }
+  .danger-label { font-size: 13px; font-weight: 500; color: var(--text); }
+  .danger-desc  { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+  /* â⬝â⬝ Divider â⬝â⬝ */
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  /* â⬝â⬝ Password strength â⬝â⬝ */
+  .pw-strength { display: flex; gap: 3px; margin-top: 6px; }
+  .pw-bar { flex: 1; height: 3px; border-radius: 2px; background: var(--border); transition: background 0.2s; }
+  .pw-bar.weak   { background: var(--red); }
+  .pw-bar.medium { background: var(--warning); }
+  .pw-bar.strong { background: var(--green); }
+
+  /* â⬝â⬝ Session row â⬝â⬝ */
+  .session-row { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .session-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .session-row:first-child { padding-top: 0; }
+  .session-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; }
+  .session-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text); }
+  .session-meta  { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .session-current { font-size: 10px; font-weight: 600; color: var(--green); background: var(--green-bg); border: 1px solid var(--green-border); border-radius: 10px; padding: 1px 8px; }
+
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+    .settings-nav { display: none; }
+    .info-grid { grid-template-columns: repeat(2,1fr); }
+    .form-row { grid-template-columns: 1fr; }
+    .form-row.three { grid-template-columns: 1fr; }
+    .settings-body { padding: 20px; }
+  }
+  @media (max-width: 640px) {
+    .info-grid { grid-template-columns: 1fr 1fr; }
+    .settings-body { padding: 16px; }
+    .page-title, .section-title { font-size: 17px; }
+    .form-row, .form-row.three { grid-template-columns: 1fr; }
+    .modal { margin: 8px; max-width: calc(100vw - 16px); }
+  }
+  @media (max-width: 480px) {
+    .info-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- â⬝â⬝ App Sidebar â⬝â⬝ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-tag">Procurement</div>
+      <div class="logo-name">Build<span class="logo-dot">Pro</span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-group-label">Main</div>
+      <a class="nav-item" href="/"><svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" fill="currentColor" opacity=".7"/><rect x="9" y="1" width="6" height="6" rx="1" fill="currentColor" opacity=".4"/><rect x="1" y="9" width="6" height="6" rx="1" fill="currentColor" opacity=".4"/><rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor" opacity=".4"/></svg>Dashboard</a>
+      <a class="nav-item" href="/material-indent.html"><svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Material Indent</a>
+      <a class="nav-item" href="/approval-workflow.html"><svg viewBox="0 0 16 16" fill="none"><path d="M2 8l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.2"/></svg>Approvals</a>
+      <a class="nav-item" href="/quotations.html"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 5v3.5L10.5 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>Quotations</a>
+      <a class="nav-item" href="/purchase-orders.html"><svg viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 5h6M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>Purchase Orders</a>
+      <a class="nav-item" href="/delivery-grn.html"><svg viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="11" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 7l2 2 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>Delivery & GRN</a>
+      <a class="nav-item" href="/invoice-payment.html"><svg viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="12" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M1 6h14" stroke="currentColor" stroke-width="1.1"/><path d="M5 10h2M9 10h2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>Invoices</a>
+      <div class="nav-group-label">Manage</div>
+      <a class="nav-item" href="/reports-analytics.html"><svg viewBox="0 0 16 16" fill="none"><rect x="1" y="8" width="6" height="7" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="4" width="6" height="11" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="3" y="1" width="10" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/></svg>Reports</a>
+      <a class="nav-item active" href="/settings.html"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M2.93 2.93l1.41 1.41M11.66 11.66l1.41 1.41M2.93 13.07l1.41-1.41M11.66 4.34l1.41-1.41" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="user-avatar" id="sb-avatar">RK</div>
+        <div>
+          <div class="user-name" id="sb-name">Administrator</div>
+          <div class="user-role" id="sb-role">Admin</div>
+        </div>
+      </div>
+      <div class="project-pill">
+        <div class="project-dot"></div>
+        <span id="sb-project">No project selected</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- â⬝â⬝ Main â⬝â⬝ -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-breadcrumb">
+        <a class="bc-link" href="/">Procurement</a>
+        <span class="bc-sep">›</span>
+        <span class="bc-current">Settings</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- Settings nav -->
+      <div class="settings-nav">
+        <div class="settings-nav-group">
+          <div class="sn-group-label">Organization</div>
+          <div class="sn-item active" onclick="showPanel('projects',this)">
+            <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1" stroke="currentColor" stroke-width="1.2"/></svg>
+            Projects
+          </div>
+          <div class="sn-item" onclick="showPanel('users',this)">
+            <svg viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1 13c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M11 7l1.5 1.5L15 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Users & Roles
+          </div>
+        </div>
+        <div class="settings-nav-group">
+          <div class="sn-group-label">Account</div>
+          <div class="sn-item" onclick="showPanel('profile',this)">
+            <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.2"/><path d="M2 14c0-3.31 2.69-6 6-6s6 2.69 6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            My Profile
+          </div>
+          <div class="sn-item" onclick="showPanel('login',this)">
+            <svg viewBox="0 0 16 16" fill="none"><rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            Login & Security
+          </div>
+        </div>
+        <div class="settings-nav-group">
+          <div class="sn-group-label">System</div>
+          <div class="sn-item" onclick="showPanel('preferences',this)">
+            <svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            Preferences
+          </div>
+          <div class="sn-item" onclick="showPanel('notifications',this)">
+            <svg viewBox="0 0 16 16" fill="none"><path d="M8 2a5 5 0 00-5 5v3l-1 2h12l-1-2V7a5 5 0 00-5-5z" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 13.5a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.2"/></svg>
+            Notifications
+          </div>
+          <div class="sn-item" onclick="showPanel('about',this)">
+            <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 7v5M8 5v.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            About
+          </div>
+        </div>
+      </div>
+
+      <!-- â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢ SETTINGS PANELS â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢ -->
+      <div class="settings-body">
+
+        <!-- â⬝â⬝ PROJECTS â⬝â⬝ -->
+        <div class="settings-panel active" id="panel-projects">
+          <div class="panel-header">
+            <div class="panel-title">Projects</div>
+            <div class="panel-sub">Manage construction projects linked to procurement activities.</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">All projects</div>
+                <div class="card-sub" id="proj-count-sub">Loadingâ¦</div>
+              </div>
+              <button class="btn btn-accent btn-sm" onclick="openModal('modal-project')">
+                <svg viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                Add project
+              </button>
+            </div>
+            <div class="table-wrap" style="border:none;border-radius:0">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Project</th>
+                    <th>Location</th>
+                    <th>Budget</th>
+                    <th>Created</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="projects-tbody">
+                  <tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:32px">Loadingâ¦</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- â⬝â⬝ USERS â⬝â⬝ -->
+        <div class="settings-panel" id="panel-users">
+          <div class="panel-header">
+            <div class="panel-title">Users & Roles</div>
+            <div class="panel-sub">Manage team members and their access permissions.</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Team members</div>
+                <div class="card-sub" id="user-count-sub">Loadingâ¦</div>
+              </div>
+              <button class="btn btn-accent btn-sm" onclick="openModal('modal-user')">
+                <svg viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                Add user
+              </button>
+            </div>
+            <div class="table-wrap" style="border:none;border-radius:0">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Joined</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="users-tbody">
+                  <tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:32px">Loadingâ¦</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Role reference -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Role permissions reference</div>
+            </div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Role</th>
+                      <th>Indent</th>
+                      <th>Approve</th>
+                      <th>PO</th>
+                      <th>GRN</th>
+                      <th>Invoice</th>
+                      <th>Reports</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><span class="role-tag role-DIRECTOR">Director</span></td><td>âS</td><td>âS Final</td><td>âS</td><td>âS</td><td>âS</td><td>âS Full</td></tr>
+                    <tr><td><span class="role-tag role-PURCHASE_MANAGER">Purchase Mgr</span></td><td>âS</td><td>âS</td><td>âS</td><td>âS</td><td>âS</td><td>âS</td></tr>
+                    <tr><td><span class="role-tag role-SITE_ENGINEER">Site Engineer</span></td><td>âS Raise</td><td>â⬝</td><td>View</td><td>âS</td><td>View</td><td>Limited</td></tr>
+                    <tr><td><span class="role-tag role-SUPERVISOR">Supervisor</span></td><td>âS Raise</td><td>â⬝</td><td>View</td><td>âS</td><td>â⬝</td><td>â⬝</td></tr>
+                    <tr><td><span class="role-tag role-ACCOUNTANT">Accountant</span></td><td>â⬝</td><td>â⬝</td><td>View</td><td>View</td><td>âS</td><td>âS</td></tr>
+                    <tr><td><span class="role-tag role-QUANTITY_SURVEYOR">Qty Surveyor</span></td><td>View</td><td>â⬝</td><td>View</td><td>View</td><td>View</td><td>âS</td></tr>
+                    <tr><td><span class="role-tag role-DOCUMENT_CONTROLLER">Doc Controller</span></td><td>View</td><td>â⬝</td><td>View</td><td>â⬝</td><td>â⬝</td><td>View</td></tr>
+                    <tr><td><span class="role-tag role-ACCOUNTS">Accounts</span></td><td>â⬝</td><td>â⬝</td><td>View</td><td>View</td><td>âS</td><td>âS</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- â⬝â⬝ PROFILE â⬝â⬝ -->
+        <div class="settings-panel" id="panel-profile">
+          <div class="panel-header">
+            <div class="panel-title">My Profile</div>
+            <div class="panel-sub">Update your personal details and display preferences.</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Personal information</div>
+              <button class="btn btn-sm" onclick="saveProfile()">Save changes</button>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+                <div class="user-avatar" style="width:56px;height:56px;font-size:20px;font-weight:600" id="profile-avatar">RK</div>
+                <div>
+                  <div style="font-size:14px;font-weight:600;color:var(--text)" id="profile-display-name">Administrator</div>
+                  <div style="font-size:12px;color:var(--text-3);margin-top:2px" id="profile-display-role">Admin</div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Full name <span>*</span></label>
+                  <input class="form-input" id="p-name" type="text" placeholder="Your full name">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Email address</label>
+                  <input class="form-input" id="p-email" type="email" placeholder="you@company.com" disabled style="opacity:0.6;cursor:not-allowed">
+                  <div class="form-hint">Email cannot be changed. Contact admin to update.</div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Role</label>
+                  <input class="form-input" id="p-role" type="text" disabled style="opacity:0.6;cursor:not-allowed">
+                  <div class="form-hint">Role is assigned by admin.</div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Phone number</label>
+                  <input class="form-input" id="p-phone" type="tel" placeholder="+91 98XXX XXXXX">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- â⬝â⬝ LOGIN & SECURITY â⬝â⬝ -->
+        <div class="settings-panel" id="panel-login">
+          <div class="panel-header">
+            <div class="panel-title">Login & Security</div>
+            <div class="panel-sub">Manage your password, active sessions, and account security.</div>
+          </div>
+
+          <!-- Login credentials -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Login credentials</div>
+            </div>
+            <div class="card-body">
+              <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="var(--blue)" stroke-width="1.4"/><path d="M7 6v4M7 4.5v.5" stroke="var(--blue)" stroke-width="1.4" stroke-linecap="round"/></svg>
+                <div style="font-size:12px;color:var(--text-2)">Current login: <strong id="login-email-display">loadingâ¦</strong></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Current password <span>*</span></label>
+                <input class="form-input" id="pw-current" type="password" placeholder="Enter current password">
+              </div>
+              <div class="form-row">
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label">New password <span>*</span></label>
+                  <input class="form-input" id="pw-new" type="password" placeholder="Min. 8 characters" oninput="checkPwStrength(this.value)">
+                  <div class="pw-strength"><div class="pw-bar" id="pw-b1"></div><div class="pw-bar" id="pw-b2"></div><div class="pw-bar" id="pw-b3"></div><div class="pw-bar" id="pw-b4"></div></div>
+                  <div class="form-hint" id="pw-hint">Use at least 8 characters with letters and numbers.</div>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label">Confirm new password <span>*</span></label>
+                  <input class="form-input" id="pw-confirm" type="password" placeholder="Repeat new password">
+                </div>
+              </div>
+              <div style="margin-top:18px">
+                <button class="btn btn-primary" onclick="changePassword()">Update password</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active sessions -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Active sessions</div>
+              <button class="btn btn-sm btn-danger" onclick="revokeAll()">Revoke all others</button>
+            </div>
+            <div class="card-body" style="padding:0 20px">
+              <div class="session-row">
+                <div class="session-icon">ðŸ"»</div>
+                <div style="flex:1">
+                  <div class="session-label">Chrome on Windows</div>
+                  <div class="session-meta">Bengaluru, Karnataka · Last active just now</div>
+                </div>
+                <span class="session-current">Current</span>
+              </div>
+              <div class="session-row">
+                <div class="session-icon">ðŸS±</div>
+                <div style="flex:1">
+                  <div class="session-label">Chrome on Android</div>
+                  <div class="session-meta">Bengaluru, Karnataka · Last active 2h ago</div>
+                </div>
+                <button class="btn btn-sm btn-danger" onclick="showToast('Session revoked','info')">Revoke</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- â⬝â⬝ PREFERENCES â⬝â⬝ -->
+        <div class="settings-panel" id="panel-preferences">
+          <div class="panel-header">
+            <div class="panel-title">Preferences</div>
+            <div class="panel-sub">Customize how your procurement workspace works for your team.</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">Display</div></div>
+            <div class="card-body" style="padding:0 20px">
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Compact table rows</div>
+                  <div class="toggle-desc">Reduce row height for denser data views.</div>
+                </div>
+                <label class="toggle"><input type="checkbox" id="pref-compact"><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Show currency in INR (âa¹)</div>
+                  <div class="toggle-desc">Display all amounts with âa¹ symbol and Indian number format.</div>
+                </div>
+                <label class="toggle"><input type="checkbox" id="pref-inr" checked><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Show quantity units</div>
+                  <div class="toggle-desc">Always display units (MT, Bags, Sqft) alongside quantities.</div>
+                </div>
+                <label class="toggle"><input type="checkbox" id="pref-units" checked><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">Default project</div></div>
+            <div class="card-body">
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">Active project</label>
+                <select class="form-select" id="pref-project"></select>
+                <div class="form-hint">This project will be pre-selected across all modules.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">Date & number format</div></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label">Date format</label>
+                  <select class="form-select" id="pref-dateformat">
+                    <option value="DD MMM YYYY">15 Apr 2026</option>
+                    <option value="DD/MM/YYYY">15/04/2026</option>
+                    <option value="MM/DD/YYYY">04/15/2026</option>
+                    <option value="YYYY-MM-DD">2026-04-15</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label">Number format</label>
+                  <select class="form-select" id="pref-numformat">
+                    <option value="indian">Indian (1,00,000)</option>
+                    <option value="international">International (100,000)</option>
+                  </select>
+                </div>
+              </div>
+              <div style="margin-top:16px">
+                <button class="btn btn-primary" onclick="savePreferences()">Save preferences</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- â⬝â⬝ NOTIFICATIONS â⬝â⬝ -->
+        <div class="settings-panel" id="panel-notifications">
+          <div class="panel-header">
+            <div class="panel-title">Notifications</div>
+            <div class="panel-sub">Choose which events trigger alerts in your procurement workspace.</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">Procurement alerts</div></div>
+            <div class="card-body" style="padding:0 20px">
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">New indent submitted</div>
+                  <div class="toggle-desc">Notify when a site engineer raises a new material indent.</div>
+                </div>
+                <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Indent pending approval</div>
+                  <div class="toggle-desc">Remind if an indent hasn't been reviewed within 24h.</div>
+                </div>
+                <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">PO due date approaching</div>
+                  <div class="toggle-desc">Alert 2 days before a purchase order's delivery due date.</div>
+                </div>
+                <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">GRN quality failure</div>
+                  <div class="toggle-desc">Notify when a goods receipt fails quality check.</div>
+                </div>
+                <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Invoice overdue</div>
+                  <div class="toggle-desc">Alert when an invoice passes its due date without payment.</div>
+                </div>
+                <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Budget threshold exceeded</div>
+                  <div class="toggle-desc">Warn when project spend crosses 80% of allocated budget.</div>
+                </div>
+                <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:8px">
+            <button class="btn btn-primary" onclick="saveNotifications()">Save notification settings</button>
+          </div>
+        </div>
+
+        <!-- â⬝â⬝ ABOUT â⬝â⬝ -->
+        <div class="settings-panel" id="panel-about">
+          <div class="panel-header">
+            <div class="panel-title">About This System</div>
+            <div class="panel-sub">System information and database stats.</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">Application</div></div>
+            <div class="card-body">
+              <div class="info-grid" style="margin-bottom:16px">
+                <div class="info-item"><div class="info-label">Version</div><div class="info-value">1.0.0</div></div>
+                <div class="info-item"><div class="info-label">Server</div><div class="info-value">Node.js</div></div>
+                <div class="info-item"><div class="info-label">Database</div><div class="info-value">SQLite 3</div></div>
+                <div class="info-item"><div class="info-label">Port</div><div class="info-value">3008</div></div>
+                <div class="info-item"><div class="info-label">Environment</div><div class="info-value">Local</div></div>
+                <div class="info-item"><div class="info-label">Auth</div><div class="info-value">JWT 7d</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">Database records</div></div>
+            <div class="card-body">
+              <div class="info-grid" id="db-stats">
+                <div class="info-item"><div class="info-label">Projects</div><div class="info-value" id="stat-projects">âS</div></div>
+                <div class="info-item"><div class="info-label">Users</div><div class="info-value" id="stat-users">âS</div></div>
+                <div class="info-item"><div class="info-label">Vendors</div><div class="info-value" id="stat-vendors">âS</div></div>
+                <div class="info-item"><div class="info-label">Indents</div><div class="info-value" id="stat-indents">âS</div></div>
+                <div class="info-item"><div class="info-label">POs</div><div class="info-value" id="stat-pos">âS</div></div>
+                <div class="info-item"><div class="info-label">Invoices</div><div class="info-value" id="stat-invs">âS</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Danger zone -->
+          <div class="danger-zone card">
+            <div class="card-header"><div class="card-title">Danger zone</div></div>
+            <div class="danger-item">
+              <div>
+                <div class="danger-label">Reset demo data</div>
+                <div class="danger-desc">Clear all transactional records (indents, POs, invoices, GRNs). Keeps users and projects.</div>
+              </div>
+              <button class="btn btn-danger btn-sm" onclick="confirmDanger('reset')">Reset data</button>
+            </div>
+            <div class="danger-item">
+              <div>
+                <div class="danger-label">Export full database</div>
+                <div class="danger-desc">Download a JSON export of all procurement data for backup.</div>
+              </div>
+              <button class="btn btn-sm" onclick="exportDB()">Export JSON</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /settings-body -->
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+
+<!-- â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢ MODALS â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢ -->
+
+<!-- Add Project -->
+<div class="overlay" id="modal-project" onclick="handleOverlay(event,'modal-project')">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="proj-modal-title">Add new project</div>
+        <div class="modal-sub">Project will be available across all modules.</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="proj-edit-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Project name <span>*</span></label>
+          <input class="form-input" id="proj-name" type="text" placeholder="e.g. Koramangala Commercial Phase 1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input class="form-input" id="proj-location" type="text" placeholder="e.g. Bengaluru, Karnataka">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Total budget (âa¹)</label>
+        <input class="form-input" id="proj-budget" type="number" placeholder="e.g. 15000000" min="0">
+        <div class="form-hint">Enter the total procurement budget for this project in rupees.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-project')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveProject()">Save project</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add User -->
+<div class="overlay" id="modal-user" onclick="handleOverlay(event,'modal-user')">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="user-modal-title">Add new user</div>
+        <div class="modal-sub">User will receive login credentials via email.</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="user-edit-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Full name <span>*</span></label>
+          <input class="form-input" id="u-name" type="text" placeholder="e.g. Suresh Nair">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email address <span>*</span></label>
+          <input class="form-input" id="u-email" type="email" placeholder="user@company.com">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Role <span>*</span></label>
+          <select class="form-select" id="u-role">
+            <option value="">Select role</option>
+            <option value="DIRECTOR">Director</option>
+            <option value="PURCHASE_MANAGER">Purchase Manager</option>
+            <option value="SITE_ENGINEER">Site Engineer</option>
+            <option value="SUPERVISOR">Supervisor</option>
+            <option value="ACCOUNTANT">Accountant</option>
+            <option value="QUANTITY_SURVEYOR">Quantity Surveyor</option>
+            <option value="DOCUMENT_CONTROLLER">Document Controller</option>
+            <option value="ACCOUNTS">Accounts</option>
+          </select>
+        </div>
+        <div class="form-group" id="pw-group">
+          <label class="form-label">Initial password <span>*</span></label>
+          <input class="form-input" id="u-password" type="password" placeholder="Min. 8 characters">
+          <div class="form-hint">User can change this after first login.</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-user')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveUser()">Add user</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm danger -->
+<div class="overlay" id="modal-danger" onclick="handleOverlay(event,'modal-danger')">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" style="color:var(--red)">âš ï¸ Are you sure?</div>
+        <div class="modal-sub" id="danger-sub">This action cannot be undone.</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-2);line-height:1.6" id="danger-desc">
+        This will permanently delete data and cannot be reversed.
+      </p>
+      <div style="margin-top:16px;background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;color:var(--red)">
+        Type <strong>CONFIRM</strong> below to proceed:
+      </div>
+      <input class="form-input" id="danger-confirm-input" type="text" placeholder="Type CONFIRM" style="margin-top:10px">
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-danger')">Cancel</button>
+      <button class="btn btn-danger" onclick="executeDanger()" id="danger-exec-btn">Yes, proceed</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <div class="toast-icon" id="toast-icon" style="background:var(--green)">
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2 2 4-4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <span id="toast-text">Saved successfully</span>
+</div>
+
+<script src="auth.js"></script>
+<script>
+const session = requireAuth('login.html');
+if (session) {
+  storeSession(session);
+  document.getElementById('sb-name').textContent = session.name || 'Administrator';
+  document.getElementById('sb-role').textContent = session.role || 'Procurement';
+  document.getElementById('sb-avatar').textContent = session.initials || 'AD';
+  document.getElementById('sb-project').textContent = session.project || 'No project selected';
+}
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+//  API
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+const API = window.location.origin + '/api';
+
+async function apiFetch(path, opts = {}) {
+  try {
+    const res = await fetch(API + path, { headers: authHeaders(), ...opts });
+    if (res.status === 401) { handleUnauthorized(); return null; }
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || 'Server error');
+    return json.data;
+  } catch (e) {
+    showToast(e.message || 'Cannot connect to server', 'error');
+    console.error('API:', path, e);
+    return null;
+  }
+}
+
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+//  NAV
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+function showPanel(name, el) {
+  document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sn-item').forEach(s => s.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'projects')   loadProjects();
+  if (name === 'users')      loadUsers();
+  if (name === 'profile')    loadProfile();
+  if (name === 'login')      loadLogin();
+  if (name === 'preferences') loadPreferences();
+  if (name === 'about')      loadAboutStats();
+}
+
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+//  PROJECTS
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+let projects = [];
+
+async function loadProjects() {
+  const data = await apiFetch('/projects');
+  if (!data) return;
+  projects = data;
+  document.getElementById('proj-count-sub').textContent = `${data.length} project${data.length !== 1 ? 's' : ''}`;
+  const tbody = document.getElementById('projects-tbody');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:32px">No projects yet. Add your first project.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(p => `
+    <tr>
+      <td>
+        <div style="font-weight:500;color:var(--text)">${p.name}</div>
+      </td>
+      <td style="color:var(--text-2)">${p.location || 'â⬝'}</td>
+      <td class="td-mono">${p.budget ? 'âa¹' + fmt(p.budget) : 'â⬝'}</td>
+      <td style="color:var(--text-3);font-size:12px">${fmtDate(p.created_at)}</td>
+      <td><span class="badge badge-green">Active</span></td>
+      <td>
+        <div class="row-actions">
+          <button class="row-btn" onclick="editProject('${p.id}')">Edit</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  // Also populate preferences dropdown
+  const sel = document.getElementById('pref-project');
+  if (sel) {
+    sel.innerHTML = data.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    const saved = localStorage.getItem('buildpro_project_id');
+    if (saved) sel.value = saved;
+  }
+}
+
+function editProject(id) {
+  const p = projects.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('proj-edit-id').value = id;
+  document.getElementById('proj-name').value = p.name;
+  document.getElementById('proj-location').value = p.location || '';
+  document.getElementById('proj-budget').value = p.budget || '';
+  document.getElementById('proj-modal-title').textContent = 'Edit project';
+  openModal('modal-project');
+}
+
+async function saveProject() {
+  const id    = document.getElementById('proj-edit-id').value;
+  const name  = document.getElementById('proj-name').value.trim();
+  const loc   = document.getElementById('proj-location').value.trim();
+  const budget = document.getElementById('proj-budget').value;
+  if (!name) { showToast('Project name is required', 'error'); return; }
+
+  let data;
+  if (id) {
+    data = await apiFetch(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify({ name, location: loc, budget: parseFloat(budget) || 0 }) });
+  } else {
+    data = await apiFetch('/projects', { method: 'POST', body: JSON.stringify({ name, location: loc, budget: parseFloat(budget) || 0 }) });
+  }
+  if (data) {
+    closeModal('modal-project');
+    resetProjectForm();
+    showToast(id ? 'Project updated' : 'Project added');
+    loadProjects();
+  }
+}
+
+function resetProjectForm() {
+  document.getElementById('proj-edit-id').value = '';
+  document.getElementById('proj-name').value = '';
+  document.getElementById('proj-location').value = '';
+  document.getElementById('proj-budget').value = '';
+  document.getElementById('proj-modal-title').textContent = 'Add new project';
+}
+
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+//  USERS
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+let users = [];
+
+async function loadUsers() {
+  const data = await apiFetch('/auth/users');
+  if (!data) return;
+  users = data;
+  document.getElementById('user-count-sub').textContent = `${data.length} team member${data.length !== 1 ? 's' : ''}`;
+  const tbody = document.getElementById('users-tbody');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:32px">No users found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(u => {
+    const initials = u.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+    const avClass = u.role === 'DIRECTOR' ? 'av-director' : u.role === 'PURCHASE_MANAGER' ? 'av-manager' : u.role === 'SITE_ENGINEER' ? 'av-engineer' : u.role === 'QUANTITY_SURVEYOR' ? 'av-qs' : u.role === 'DOCUMENT_CONTROLLER' ? 'av-dc' : u.role === 'ACCOUNTS' ? 'av-accounts' : 'av-supervisor';
+    const roleLabel = { DIRECTOR:'Director', PURCHASE_MANAGER:'Purchase Manager', SITE_ENGINEER:'Site Engineer', SUPERVISOR:'Supervisor', ACCOUNTANT:'Accountant', QUANTITY_SURVEYOR:'Quantity Surveyor', DOCUMENT_CONTROLLER:'Document Controller', ACCOUNTS:'Accounts' }[u.role] || u.role;
+    return `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar ${avClass}">${initials}</div>
+          <div>
+            <div style="font-weight:500;color:var(--text)">${u.name}</div>
+          </div>
+        </div>
+      </td>
+      <td style="color:var(--text-2);font-size:12.5px">${u.email}</td>
+      <td><span class="role-tag role-${u.role}">${roleLabel}</span></td>
+      <td style="color:var(--text-3);font-size:12px">${fmtDate(u.created_at)}</td>
+      <td>
+        <div class="row-actions">
+          <button class="row-btn" onclick="editUser('${u.id}')">Edit</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function editUser(id) {
+  const u = users.find(x => x.id === id);
+  if (!u) return;
+  document.getElementById('user-edit-id').value = id;
+  document.getElementById('u-name').value  = u.name;
+  document.getElementById('u-email').value = u.email;
+  document.getElementById('u-role').value  = u.role;
+  document.getElementById('u-password').value = '';
+  document.getElementById('pw-group').style.display = 'none';
+  document.getElementById('user-modal-title').textContent = 'Edit user';
+  openModal('modal-user');
+}
+
+async function saveUser() {
+  const id       = document.getElementById('user-edit-id').value;
+  const name     = document.getElementById('u-name').value.trim();
+  const email    = document.getElementById('u-email').value.trim();
+  const role     = document.getElementById('u-role').value;
+  const password = document.getElementById('u-password').value;
+  if (!name || !email || !role) { showToast('Name, email and role are required', 'error'); return; }
+  if (!id && !password) { showToast('Password is required for new users', 'error'); return; }
+
+  let data;
+  if (id) {
+    data = await apiFetch(`/auth/users/${id}`, { method: 'PATCH', body: JSON.stringify({ name, email, role, password }) });
+  } else {
+    data = await apiFetch('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password, role }) });
+  }
+  if (data) {
+    closeModal('modal-user');
+    resetUserForm();
+    showToast(id ? 'User updated' : 'User added â⬝ they can now log in');
+    loadUsers();
+  }
+}
+
+function resetUserForm() {
+  document.getElementById('user-edit-id').value = '';
+  document.getElementById('u-name').value = '';
+  document.getElementById('u-email').value = '';
+  document.getElementById('u-role').value = '';
+  document.getElementById('u-password').value = '';
+  document.getElementById('pw-group').style.display = '';
+  document.getElementById('user-modal-title').textContent = 'Add new user';
+}
+
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+//  PROFILE
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+function loadProfile() {
+  const uid = localStorage.getItem('buildpro_user_id');
+  const name = localStorage.getItem('buildpro_user_name') || (session ? session.name : 'Administrator');
+  const email = localStorage.getItem('buildpro_user_email') || (session ? session.email : 'admin@company.local');
+  const role = localStorage.getItem('buildpro_user_role') || (session ? session.role.toUpperCase().replace(/ /g, '_') : 'ADMIN');
+  const roleLabel = { DIRECTOR:'Director', PURCHASE_MANAGER:'Purchase Manager', SITE_ENGINEER:'Site Engineer', SUPERVISOR:'Supervisor', ACCOUNTANT:'Accountant', QUANTITY_SURVEYOR:'Quantity Surveyor', DOCUMENT_CONTROLLER:'Document Controller', ACCOUNTS:'Accounts' }[role] || role;
+  const initials = name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+
+  document.getElementById('p-name').value  = name;
+  document.getElementById('p-email').value = email;
+  document.getElementById('p-role').value  = roleLabel;
+  document.getElementById('profile-avatar').textContent = initials;
+  document.getElementById('profile-display-name').textContent = name;
+  document.getElementById('profile-display-role').textContent = roleLabel;
+}
+
+function saveProfile() {
+  const name = document.getElementById('p-name').value.trim();
+  if (!name) { showToast('Name cannot be empty', 'error'); return; }
+  localStorage.setItem('buildpro_user_name', name);
+  const initials = name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('profile-avatar').textContent = initials;
+  document.getElementById('profile-display-name').textContent = name;
+  document.getElementById('sb-name').textContent = name;
+  document.getElementById('sb-avatar').textContent = initials;
+  showToast('Profile updated');
+}
+
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+//  LOGIN & SECURITY
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+function loadLogin() {
+  const email = localStorage.getItem('buildpro_user_email') || 'admin@company.local';
+  document.getElementById('login-email-display').textContent = email;
+}
+
+function checkPwStrength(val) {
+  const bars = [document.getElementById('pw-b1'), document.getElementById('pw-b2'), document.getElementById('pw-b3'), document.getElementById('pw-b4')];
+  bars.forEach(b => { b.className = 'pw-bar'; });
+  const hint = document.getElementById('pw-hint');
+  if (!val) { hint.textContent = 'Use at least 8 characters with letters and numbers.'; return; }
+  let score = 0;
+  if (val.length >= 8)  score++;
+  if (/[A-Z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+  const cls = score <= 1 ? 'weak' : score <= 2 ? 'medium' : 'strong';
+  const labels = ['','weak','medium','','strong'];
+  for (let i = 0; i < score; i++) bars[i].classList.add(cls);
+  hint.textContent = score <= 1 ? 'Too weak â⬝ add uppercase, numbers or symbols.' : score <= 2 ? 'Medium â⬝ add more complexity.' : 'Strong password ðŸ';
+}
+
+async function changePassword() {
+  const curr    = document.getElementById('pw-current').value;
+  const newPw   = document.getElementById('pw-new').value;
+  const confirm = document.getElementById('pw-confirm').value;
+  if (!curr || !newPw || !confirm) { showToast('All fields are required', 'error'); return; }
+  if (newPw !== confirm) { showToast('Passwords do not match', 'error'); return; }
+  if (newPw.length < 8)  { showToast('Password must be at least 8 characters', 'error'); return; }
+  const data = await apiFetch('/auth/change-password', { method: 'PATCH', body: JSON.stringify({ currentPassword: curr, newPassword: newPw }) });
+  if (!data) return;
+  showToast('Password updated successfully');
+  document.getElementById('pw-current').value = '';
+  document.getElementById('pw-new').value = '';
+  document.getElementById('pw-confirm').value = '';
+  checkPwStrength('');
+}
+
+function revokeAll() {
+  showToast('All other sessions revoked', 'info');
+}
+
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+//  PREFERENCES
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+function loadPreferences() {
+  const compact  = localStorage.getItem('pref_compact') === '1';
+  const inr      = localStorage.getItem('pref_inr') !== '0';
+  const units    = localStorage.getItem('pref_units') !== '0';
+  const df       = localStorage.getItem('pref_dateformat') || 'DD MMM YYYY';
+  const nf       = localStorage.getItem('pref_numformat') || 'indian';
+  document.getElementById('pref-compact').checked    = compact;
+  document.getElementById('pref-inr').checked        = inr;
+  document.getElementById('pref-units').checked      = units;
+  document.getElementById('pref-dateformat').value   = df;
+  document.getElementById('pref-numformat').value    = nf;
+  loadProjects(); // populate dropdown
+}
+
+function savePreferences() {
+  localStorage.setItem('pref_compact',    document.getElementById('pref-compact').checked  ? '1' : '0');
+  localStorage.setItem('pref_inr',        document.getElementById('pref-inr').checked      ? '1' : '0');
+  localStorage.setItem('pref_units',      document.getElementById('pref-units').checked    ? '1' : '0');
+  localStorage.setItem('pref_dateformat', document.getElementById('pref-dateformat').value);
+  localStorage.setItem('pref_numformat',  document.getElementById('pref-numformat').value);
+  const selProject = document.getElementById('pref-project').value;
+  if (selProject) {
+    localStorage.setItem('buildpro_project_id', selProject);
+    const p = projects.find(x => x.id === selProject);
+    if (p) {
+      document.getElementById('sb-project').textContent = p.name;
+      showToast('Preferences saved â⬝ active project: ' + p.name);
+    }
+  } else {
+    showToast('Preferences saved');
+  }
+}
+
+function saveNotifications() {
+  showToast('Notification settings saved');
+}
+
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+//  ABOUT / DB STATS
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+async function loadAboutStats() {
+  const [projs, usrs, vendors, indents, pos, invs] = await Promise.allSettled([
+    apiFetch('/projects'),
+    apiFetch('/auth/users'),
+    apiFetch('/vendors'),
+    apiFetch('/indents'),
+    apiFetch('/pos'),
+    apiFetch('/invoices'),
+  ]);
+  const g = (r) => r.status === 'fulfilled' && r.value ? r.value.length : 'âS';
+  document.getElementById('stat-projects').textContent = g(projs);
+  document.getElementById('stat-users').textContent    = g(usrs);
+  document.getElementById('stat-vendors').textContent  = g(vendors);
+  document.getElementById('stat-indents').textContent  = g(indents);
+  document.getElementById('stat-pos').textContent      = g(pos);
+  document.getElementById('stat-invs').textContent     = g(invs);
+}
+
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+//  DANGER ZONE
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+let pendingDangerAction = null;
+
+function confirmDanger(action) {
+  pendingDangerAction = action;
+  document.getElementById('danger-confirm-input').value = '';
+  document.getElementById('danger-sub').textContent = action === 'reset' ? 'Reset all transactional data' : 'This action cannot be undone.';
+  document.getElementById('danger-desc').textContent = action === 'reset'
+    ? 'This will delete all indents, purchase orders, GRNs, quotations, approvals and invoices. Users, vendors and projects will remain.'
+    : 'Proceed with caution.';
+  openModal('modal-danger');
+}
+
+function executeDanger() {
+  const input = document.getElementById('danger-confirm-input').value.trim();
+  if (input !== 'CONFIRM') { showToast('Type CONFIRM to proceed', 'error'); return; }
+  if (pendingDangerAction === 'reset') {
+    apiFetch('/admin/reset', { method: 'POST' }).then(data => {
+      if (data) {
+        closeModal('modal-danger');
+        showToast('Data reset â⬝ all transactional records cleared', 'info');
+        pendingDangerAction = null;
+      }
+    });
+    return;
+  }
+  closeModal('modal-danger');
+  pendingDangerAction = null;
+}
+
+async function exportDB() {
+  try {
+    const [projs, usrs, vendors, indents, pos, invs, grns] = await Promise.all([
+      apiFetch('/projects'), apiFetch('/auth/users'), apiFetch('/vendors'),
+      apiFetch('/indents'), apiFetch('/pos'), apiFetch('/invoices'), apiFetch('/grn'),
+    ]);
+    const dump = { exportedAt: new Date().toISOString(), projects: projs, users: usrs, vendors, indents, purchase_orders: pos, invoices: invs, grn: grns };
+    const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `procurement-export-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    showToast('Database exported successfully', 'info');
+  } catch(e) {
+    showToast('Export failed', 'error');
+  }
+}
+
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+//  MODAL HELPERS
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'modal-project') resetProjectForm();
+  if (id === 'modal-user')    resetUserForm();
+}
+function handleOverlay(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.overlay.open').forEach(o => o.classList.remove('open'));
+  }
+});
+
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+//  TOAST
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  const ic = document.getElementById('toast-icon');
+  document.getElementById('toast-text').textContent = msg;
+  t.style.background = type === 'error' ? 'var(--red)' : type === 'info' ? 'var(--blue)' : 'var(--text)';
+  ic.style.background = type === 'error' ? 'rgba(255,255,255,0.25)' : type === 'info' ? 'rgba(255,255,255,0.25)' : 'var(--green)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+//  UTILS
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+function fmt(n) {
+  if (!n) return '0';
+  return Number(n).toLocaleString('en-IN');
+}
+function fmtDate(d) {
+  if (!d) return 'â⬝';
+  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+//  INIT
+// â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
+loadProjects();
+
+// Sync sidebar from localStorage
+const savedName = localStorage.getItem('buildpro_user_name');
+const savedRole = localStorage.getItem('buildpro_user_role');
+const savedProject = localStorage.getItem('buildpro_project_id');
+if (savedName) {
+  document.getElementById('sb-name').textContent = savedName;
+  document.getElementById('sb-avatar').textContent = savedName.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+}
+if (savedRole) {
+  const roleLabel = { DIRECTOR:'Director', PURCHASE_MANAGER:'Purchase Manager', SITE_ENGINEER:'Site Engineer', SUPERVISOR:'Supervisor', ACCOUNTANT:'Accountant' }[savedRole] || savedRole;
+  document.getElementById('sb-role').textContent = roleLabel;
+}
+</script>
+</body>
+</html>
