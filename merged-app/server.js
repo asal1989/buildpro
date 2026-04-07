@@ -1762,6 +1762,309 @@ app.put('/api/automation/settings', async (req, res) => {
 });
 
 // ============================================
+// QS (QUANTITY SURVEYOR) MODULE
+// ============================================
+
+// QS Certifications
+app.get('/api/qs-certifications', async (req, res) => {
+  try {
+    const { projectId, status } = req.query;
+    let query = `SELECT qc.*, p.project_name, mi.indent_number, po.po_number 
+                 FROM qs_certifications qc 
+                 LEFT JOIN projects p ON qc.project_id = p.id
+                 LEFT JOIN material_indents mi ON qc.indent_id = mi.id
+                 LEFT JOIN purchase_orders po ON qc.po_id = po.id
+                 WHERE 1=1`;
+    const params = [];
+    let idx = 1;
+    
+    if (projectId) { query += ` AND qc.project_id = $${idx++}`; params.push(projectId); }
+    if (status) { query += ` AND qc.status = $${idx++}`; params.push(status); }
+    
+    query += ' ORDER BY qc.created_at DESC';
+    const result = await pool.query(query, params);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/qs-certifications', async (req, res) => {
+  try {
+    const { projectId, indentId, poId, qsCertNumber, certificationDate, certifiedQuantity, certifiedAmount, certifiedBy, qsRemarks, status } = req.body;
+    const result = await pool.query(
+      `INSERT INTO qs_certifications (project_id, indent_id, po_id, qs_cert_number, certification_date, certified_quantity, certified_amount, certified_by, qs_remarks, status, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      [projectId, indentId, poId, qsCertNumber, certificationDate, certifiedQuantity, certifiedAmount, certifiedBy, qsRemarks, status || 'Pending', req.userId]
+    );
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/qs-certifications/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { certificationDate, certifiedQuantity, certifiedAmount, certifiedBy, qsRemarks, status } = req.body;
+    const result = await pool.query(
+      `UPDATE qs_certifications SET certification_date = COALESCE($1, certification_date), certified_quantity = COALESCE($2, certified_quantity), certified_amount = COALESCE($3, certified_amount), certified_by = COALESCE($4, certified_by), qs_remarks = COALESCE($5, qs_remarks), status = COALESCE($6, status), updated_at = CURRENT_TIMESTAMP WHERE id = $7 RETURNING *`,
+      [certificationDate, certifiedQuantity, certifiedAmount, certifiedBy, qsRemarks, status, id]
+    );
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// QS Measurements
+app.get('/api/qs-measurements', async (req, res) => {
+  try {
+    const { projectId } = req.query;
+    const query = projectId 
+      ? `SELECT qm.*, p.project_name FROM qs_measurements qm LEFT JOIN projects p ON qm.project_id = p.id WHERE qm.project_id = $1 ORDER BY qm.created_at DESC`
+      : `SELECT qm.*, p.project_name FROM qs_measurements qm LEFT JOIN projects p ON qm.project_id = p.id ORDER BY qm.created_at DESC`;
+    const result = await pool.query(query, projectId ? [projectId] : []);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/qs-measurements', async (req, res) => {
+  try {
+    const { projectId, itemDescription, unit, agreedRate, marketRate, qsNotes } = req.body;
+    const result = await pool.query(
+      `INSERT INTO qs_measurements (project_id, item_description, unit, agreed_rate, market_rate, variance, qs_notes, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [projectId, itemDescription, unit, agreedRate, marketRate, ((agreedRate - marketRate) / marketRate * 100).toFixed(2), qsNotes, req.userId]
+    );
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// QS Work Bills
+app.get('/api/qs-work-bills', async (req, res) => {
+  try {
+    const { projectId, status } = req.query;
+    let query = `SELECT qwb.*, p.project_name FROM qs_work_bills qwb LEFT JOIN projects p ON qwb.project_id = p.id WHERE 1=1`;
+    const params = [];
+    let idx = 1;
+    
+    if (projectId) { query += ` AND qwb.project_id = $${idx++}`; params.push(projectId); }
+    if (status) { query += ` AND qwb.status = $${idx++}`; params.push(status); }
+    
+    query += ' ORDER BY qwb.created_at DESC';
+    const result = await pool.query(query, params);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/qs-work-bills', async (req, res) => {
+  try {
+    const { projectId, billNumber, billDate, contractorName, workDescription, grossAmount, deductionAmount, retentionPercentage } = req.body;
+    const netAmount = grossAmount - deductionAmount;
+    const retentionAmount = grossAmount * (retentionPercentage / 100);
+    
+    const result = await pool.query(
+      `INSERT INTO qs_work_bills (project_id, bill_number, bill_date, contractor_name, work_description, gross_amount, deduction_amount, net_amount, retention_percentage, retention_amount, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Pending') RETURNING *`,
+      [projectId, billNumber, billDate, contractorName, workDescription, grossAmount, deductionAmount, netAmount, retentionPercentage, retentionAmount]
+    );
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// QA/QC MODULE
+// ============================================
+
+// QA Inspections
+app.get('/api/qa-inspections', async (req, res) => {
+  try {
+    const { projectId, status, inspectionType } = req.query;
+    let query = `SELECT qi.*, p.project_name FROM qa_inspections qi LEFT JOIN projects p ON qi.project_id = p.id WHERE 1=1`;
+    const params = [];
+    let idx = 1;
+    
+    if (projectId) { query += ` AND qi.project_id = $${idx++}`; params.push(projectId); }
+    if (status) { query += ` AND qi.status = $${idx++}`; params.push(status); }
+    if (inspectionType) { query += ` AND qi.inspection_type = $${idx++}`; params.push(inspectionType); }
+    
+    query += ' ORDER BY qi.inspection_date DESC';
+    const result = await pool.query(query, params);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/qa-inspections', async (req, res) => {
+  try {
+    const { projectId, inspectionNumber, inspectionDate, inspectionType, location, workCategory, inspectorName, checklistItems, findings, severity, followUpRequired, followUpDate } = req.body;
+    const result = await pool.query(
+      `INSERT INTO qa_inspections (project_id, inspection_number, inspection_date, inspection_type, location, work_category, inspector_name, checklist_items, findings, severity, follow_up_required, follow_up_date, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+      [projectId, inspectionNumber, inspectionDate, inspectionType, location, workCategory, inspectorName, JSON.stringify(checklistItems), findings, severity, followUpRequired, followUpDate, req.userId]
+    );
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// QA Non-Conformance Reports
+app.get('/api/qa-ncr', async (req, res) => {
+  try {
+    const { projectId, status } = req.query;
+    let query = `SELECT qn.*, p.project_name FROM qa_ncr qn LEFT JOIN projects p ON qn.project_id = p.id WHERE 1=1`;
+    const params = [];
+    let idx = 1;
+    
+    if (projectId) { query += ` AND qn.project_id = $${idx++}`; params.push(projectId); }
+    if (status) { query += ` AND qn.status = $${idx++}`; params.push(status); }
+    
+    query += ' ORDER BY qn.ncr_date DESC';
+    const result = await pool.query(query, params);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/qa-ncr', async (req, res) => {
+  try {
+    const { projectId, ncrNumber, ncrDate, description, rootCause, correctiveAction, preventiveAction, responsiblePerson, targetDate, severity } = req.body;
+    const result = await pool.query(
+      `INSERT INTO qa_ncr (project_id, ncr_number, ncr_date, description, root_cause, corrective_action, preventive_action, responsible_person, target_date, severity, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      [projectId, ncrNumber, ncrDate, description, rootCause, correctiveAction, preventiveAction, responsiblePerson, targetDate, severity, req.userId]
+    );
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/qa-ncr/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { correctiveAction, preventiveAction, status, closureDate } = req.body;
+    const result = await pool.query(
+      `UPDATE qa_ncr SET corrective_action = COALESCE($1, corrective_action), preventive_action = COALESCE($2, preventive_action), status = COALESCE($3, status), closure_date = COALESCE($4, closure_date), updated_at = CURRENT_TIMESTAMP WHERE id = $5 RETURNING *`,
+      [correctiveAction, preventiveAction, status, closureDate, id]
+    );
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// QA Test Reports
+app.get('/api/qa-test-reports', async (req, res) => {
+  try {
+    const { projectId, testType } = req.query;
+    let query = `SELECT qtr.*, p.project_name FROM qa_test_reports qtr LEFT JOIN projects p ON qtr.project_id = p.id WHERE 1=1`;
+    const params = [];
+    let idx = 1;
+    
+    if (projectId) { query += ` AND qtr.project_id = $${idx++}`; params.push(projectId); }
+    if (testType) { query += ` AND qtr.test_type = $${idx++}`; params.push(testType); }
+    
+    query += ' ORDER BY qtr.test_date DESC';
+    const result = await pool.query(query, params);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/qa-test-reports', async (req, res) => {
+  try {
+    const { projectId, testReportNumber, testDate, testType, sampleId, testResults, testConclusion, testedBy, witnessedBy, labName, reportFilePath } = req.body;
+    const result = await pool.query(
+      `INSERT INTO qa_test_reports (project_id, test_report_number, test_date, test_type, sample_id, test_results, test_conclusion, tested_by, witnessed_by, lab_name, report_file_path, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+      [projectId, testReportNumber, testDate, testType, sampleId, JSON.stringify(testResults), testConclusion, testedBy, witnessedBy, labName, reportFilePath, req.userId]
+    );
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// QA Checklists
+app.get('/api/qa-checklists', async (req, res) => {
+  try {
+    const { projectId, category } = req.query;
+    let query = `SELECT qc.*, p.project_name FROM qa_checklists qc LEFT JOIN projects p ON qc.project_id = p.id WHERE qc.is_active = true`;
+    const params = [];
+    let idx = 1;
+    
+    if (projectId) { query += ` AND qc.project_id = $${idx++}`; params.push(projectId); }
+    if (category) { query += ` AND qc.category = $${idx++}`; params.push(category); }
+    
+    const result = await pool.query(query, params);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/qa-checklists', async (req, res) => {
+  try {
+    const { projectId, checklistName, category, items } = req.body;
+    const result = await pool.query(
+      `INSERT INTO qa_checklists (project_id, checklist_name, category, items, created_by)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [projectId, checklistName, category, JSON.stringify(items), req.userId]
+    );
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// QA Material Tests
+app.get('/api/qa-material-tests', async (req, res) => {
+  try {
+    const { projectId, result: testResult } = req.query;
+    let query = `SELECT qmt.*, p.project_name FROM qa_material_tests qmt LEFT JOIN projects p ON qmt.project_id = p.id WHERE 1=1`;
+    const params = [];
+    let idx = 1;
+    
+    if (projectId) { query += ` AND qmt.project_id = $${idx++}`; params.push(projectId); }
+    if (testResult) { query += ` AND qmt.result = $${idx++}`; params.push(testResult); }
+    
+    query += ' ORDER BY qmt.test_date DESC';
+    const qResult = await pool.query(query, params);
+    res.json({ success: true, data: qResult.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/qa-material-tests', async (req, res) => {
+  try {
+    const { projectId, materialName, supplierName, batchNumber, testDate, testResults, result: testResult, labReportNumber, remarks } = req.body;
+    const insertResult = await pool.query(
+      `INSERT INTO qa_material_tests (project_id, material_name, supplier_name, batch_number, test_date, test_results, result, lab_report_number, remarks, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      [projectId, materialName, supplierName, batchNumber, testDate, JSON.stringify(testResults), testResult, labReportNumber, remarks, req.userId]
+    );
+    res.json({ success: true, data: insertResult.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
 // STATIC FILES
 // ============================================
 
