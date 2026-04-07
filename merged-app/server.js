@@ -6,6 +6,123 @@ const cors = require('cors');
 const crypto = require('crypto');
 const path = require('path');
 const multer = require('multer');
+const nodemailer = require('nodemailer');
+
+// Email Transporter Configuration
+const createEmailTransporter = () => {
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: process.env.SMTP_PORT || 587,
+    secure: false,
+    auth: {
+      user: process.env.SMTP_USER || '',
+      pass: process.env.SMTP_PASS || ''
+    }
+  });
+};
+
+// Send Email Helper
+async function sendEmail(to, subject, html) {
+  try {
+    const transporter = createEmailTransporter();
+    const info = await transporter.sendMail({
+      from: process.env.SMTP_FROM || '"BuildPro ERP" <noreply@buildpro.com>',
+      to,
+      subject,
+      html
+    });
+    console.log('Email sent:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (err) {
+    console.error('Email error:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+// Email Templates
+function getEmailTemplate(type, data) {
+  const templates = {
+    'indent_approved': {
+      subject: 'Material Indent Approved - BuildPro ERP',
+      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #C17B3A;">✅ Material Indent Approved</h2>
+        <p>Dear <strong>${data.userName}</strong>,</p>
+        <p>Your Material Indent <strong>${data.indentNumber}</strong> has been <strong>APPROVED</strong>.</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+          <tr><td style="padding: 8px; border: 1px solid #ddd;">Project</td><td style="padding: 8px; border: 1px solid #ddd;">${data.projectName}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #ddd;">Item</td><td style="padding: 8px; border: 1px solid #ddd;">${data.itemDescription}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #ddd;">Quantity</td><td style="padding: 8px; border: 1px solid #ddd;">${data.quantity} ${data.unit}</td></tr>
+        </table>
+        <p>Please proceed with the purchase order process.</p>
+        <p style="color: #666; font-size: 12px;">BuildPro ERP System</p>
+      </div>`
+    },
+    'indent_rejected': {
+      subject: 'Material Indent Rejected - BuildPro ERP',
+      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #B83A3A;">❌ Material Indent Rejected</h2>
+        <p>Dear <strong>${data.userName}</strong>,</p>
+        <p>Your Material Indent <strong>${data.indentNumber}</strong> has been <strong>REJECTED</strong>.</p>
+        <p><strong>Reason:</strong> ${data.reason || 'Not specified'}</p>
+        <p style="color: #666; font-size: 12px;">BuildPro ERP System</p>
+      </div>`
+    },
+    'po_created': {
+      subject: 'New Purchase Order Created - BuildPro ERP',
+      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2D6FA8;">📋 New Purchase Order</h2>
+        <p>Dear <strong>${data.userName}</strong>,</p>
+        <p>A new Purchase Order <strong>${data.poNumber}</strong> has been created.</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+          <tr><td style="padding: 8px; border: 1px solid #ddd;">Vendor</td><td style="padding: 8px; border: 1px solid #ddd;">${data.vendorName}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #ddd;">Amount</td><td style="padding: 8px; border: 1px solid #ddd;">₹${data.total}</td></tr>
+        </table>
+        <p style="color: #666; font-size: 12px;">BuildPro ERP System</p>
+      </div>`
+    },
+    'bill_approved': {
+      subject: 'Bill Approved - BuildPro ERP',
+      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2A7A4B;">✅ Bill Approved</h2>
+        <p>Dear <strong>${data.userName}</strong>,</p>
+        <p>Bill <strong>${data.billNo}</strong> has been <strong>APPROVED</strong> for payment.</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+          <tr><td style="padding: 8px; border: 1px solid #ddd;">Amount</td><td style="padding: 8px; border: 1px solid #ddd;">₹${data.amount}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #ddd;">Approved By</td><td style="padding: 8px; border: 1px solid #ddd;">${data.approvedBy}</td></tr>
+        </table>
+        <p style="color: #666; font-size: 12px;">BuildPro ERP System</p>
+      </div>`
+    },
+    'bill_paid': {
+      subject: 'Bill Paid - BuildPro ERP',
+      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2A7A4B;">💰 Bill Paid</h2>
+        <p>Dear <strong>${data.userName}</strong>,</p>
+        <p>Bill <strong>${data.billNo}</strong> has been <strong>PAID</strong>.</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+          <tr><td style="padding: 8px; border: 1px solid #ddd;">Amount</td><td style="padding: 8px; border: 1px solid #ddd;">₹${data.amount}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #ddd;">Paid By</td><td style="padding: 8px; border: 1px solid #ddd;">${data.paidBy}</td></tr>
+        </table>
+        <p style="color: #666; font-size: 12px;">BuildPro ERP System</p>
+      </div>`
+    },
+    'new_user': {
+      subject: 'Welcome to BuildPro ERP',
+      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #C17B3A;">🎉 Welcome to BuildPro ERP!</h2>
+        <p>Dear <strong>${data.userName}</strong>,</p>
+        <p>Your account has been created.</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+          <tr><td style="padding: 8px; border: 1px solid #ddd;">User Code</td><td style="padding: 8px; border: 1px solid #ddd;">${data.userCode}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #ddd;">Role</td><td style="padding: 8px; border: 1px solid #ddd;">${data.role}</td></tr>
+        </table>
+        <p>Please login at: <a href="http://localhost:3000">BuildPro Login</a></p>
+        <p style="color: #666; font-size: 12px;">BuildPro ERP System</p>
+      </div>`
+    }
+  };
+  return templates[type] || null;
+}
 
 const app = express();
 const PORT = 3000;
@@ -53,6 +170,84 @@ function requireAuth(req, res, next) {
   req.userName = session.name;
   req.userRole = session.role;
   next();
+}
+
+// Role-Based Access Control (RBAC) middleware
+const ROLES = {
+  ADMIN: ['ADMIN'],
+  DIRECTOR: ['ADMIN', 'DIRECTOR'],
+  MANAGER: ['ADMIN', 'DIRECTOR', 'MANAGER'],
+  USER: ['ADMIN', 'DIRECTOR', 'MANAGER', 'USER'],
+  VIEWER: ['ADMIN', 'DIRECTOR', 'MANAGER', 'USER', 'VIEWER']
+};
+
+function requireRole(...allowedRoles) {
+  return (req, res, next) => {
+    const userRole = req.userRole;
+    if (!userRole) {
+      return res.status(403).json({ error: 'Role not defined' });
+    }
+    
+    const allowed = allowedRoles.flat();
+    if (!allowed.includes(userRole) && !allowed.includes('ADMIN')) {
+      return res.status(403).json({ error: 'Access denied. Insufficient permissions.' });
+    }
+    next();
+  };
+}
+
+// Check if user has permission for specific action
+function hasPermission(userRole, permission) {
+  const permissions = {
+    // Users management
+    'users:create': ['ADMIN'],
+    'users:edit': ['ADMIN', 'DIRECTOR'],
+    'users:delete': ['ADMIN'],
+    
+    // Projects
+    'projects:create': ['ADMIN', 'DIRECTOR', 'MANAGER'],
+    'projects:edit': ['ADMIN', 'DIRECTOR', 'MANAGER'],
+    'projects:delete': ['ADMIN', 'DIRECTOR'],
+    
+    // Vendors
+    'vendors:create': ['ADMIN', 'DIRECTOR', 'MANAGER'],
+    'vendors:edit': ['ADMIN', 'DIRECTOR', 'MANAGER'],
+    'vendors:delete': ['ADMIN', 'DIRECTOR'],
+    
+    // Indents
+    'indents:create': ['ADMIN', 'DIRECTOR', 'MANAGER', 'USER'],
+    'indents:approve': ['ADMIN', 'DIRECTOR', 'MANAGER'],
+    'indents:edit': ['ADMIN', 'DIRECTOR', 'MANAGER', 'USER'],
+    'indents:delete': ['ADMIN', 'DIRECTOR'],
+    
+    // Purchase Orders
+    'po:create': ['ADMIN', 'DIRECTOR', 'MANAGER'],
+    'po:edit': ['ADMIN', 'DIRECTOR', 'MANAGER'],
+    'po:delete': ['ADMIN', 'DIRECTOR'],
+    'po:approve': ['ADMIN', 'DIRECTOR'],
+    
+    // Bills
+    'bills:create': ['ADMIN', 'DIRECTOR', 'MANAGER', 'USER'],
+    'bills:approve': ['ADMIN', 'DIRECTOR'],
+    'bills:payment': ['ADMIN', 'DIRECTOR'],
+    'bills:edit': ['ADMIN', 'DIRECTOR', 'MANAGER'],
+    'bills:delete': ['ADMIN', 'DIRECTOR'],
+    
+    // Reports
+    'reports:export': ['ADMIN', 'DIRECTOR', 'MANAGER'],
+    'reports:view': ['ADMIN', 'DIRECTOR', 'MANAGER', 'USER'],
+    
+    // Backup
+    'backup:create': ['ADMIN'],
+    'backup:restore': ['ADMIN'],
+    
+    // Settings
+    'settings:edit': ['ADMIN'],
+    'settings:view': ['ADMIN', 'DIRECTOR', 'MANAGER']
+  };
+  
+  const allowedRoles = permissions[permission] || [];
+  return allowedRoles.includes(userRole) || ROLES.ADMIN.includes(userRole);
 }
 
 // Public paths
@@ -720,6 +915,46 @@ app.put('/api/settings', async (req, res) => {
 
 app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'BuildPro ERP API is running', timestamp: new Date().toISOString() });
+});
+
+// ============================================
+// EMAIL NOTIFICATIONS
+// ============================================
+
+// Send notification email
+app.post('/api/notify', async (req, res) => {
+  try {
+    const { to, type, data } = req.body;
+    
+    if (!to || !type) {
+      return res.status(400).json({ error: 'Missing to or type parameter' });
+    }
+    
+    const template = getEmailTemplate(type, data);
+    if (!template) {
+      return res.status(400).json({ error: 'Invalid notification type' });
+    }
+    
+    const result = await sendEmail(to, template.subject, template.html);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Send test email
+app.post('/api/notify/test', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const result = await sendEmail(
+      email,
+      'BuildPro ERP - Test Email',
+      '<div style="font-family: Arial;"><h2>✅ Test Email</h2><p>Email notifications are working!</p></div>'
+    );
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ============================================
