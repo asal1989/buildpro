@@ -506,3 +506,18 @@ CREATE TRIGGER generate_sl_number_trigger
     FOR EACH ROW
     WHEN (NEW.sl_no IS NULL)
     EXECUTE FUNCTION generate_sl_number();
+-- DOCUMENTS TABLE (for file attachments)
+CREATE TABLE IF NOT EXISTS documents (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    entity_type VARCHAR(50),
+    entity_id UUID,
+    file_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(500) NOT NULL,
+    file_type VARCHAR(100),
+    file_size INTEGER,
+    description TEXT,
+    uploaded_by UUID REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_documents_entity ON documents(entity_type, entity_id);

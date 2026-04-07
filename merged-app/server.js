@@ -251,7 +251,7 @@ function hasPermission(userRole, permission) {
 }
 
 // Public paths
-const publicPaths = ['/api/auth/login', '/api/auth/register', '/api/health', '/api/settings', '/api/dashboard-stats'];
+const publicPaths = ['/api/auth/login', '/api/auth/register', '/api/health', '/api/settings', '/api/dashboard-stats', '/api/dashboard/charts'];
 app.use('/api', (req, res, next) => {
   if (publicPaths.includes(req.path)) return next();
   return requireAuth(req, res, next);
@@ -889,6 +889,75 @@ app.get('/api/dashboard-stats', async (req, res) => {
   }
 });
 
+// Dashboard Charts Data
+app.get('/api/dashboard/charts', async (req, res) => {
+  try {
+    // Monthly PO data (last 6 months)
+    const monthlyPO = await pool.query(`
+      SELECT DATE_TRUNC('month', created_at) as month, COUNT(*) as count, COALESCE(SUM(total), 0) as total
+      FROM purchase_orders
+      WHERE created_at > NOW() - INTERVAL '6 months'
+      GROUP BY DATE_TRUNC('month', created_at)
+      ORDER BY month
+    `);
+    
+    // Monthly Bills data (last 6 months)
+    const monthlyBills = await pool.query(`
+      SELECT DATE_TRUNC('month', created_at) as month, COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total
+      FROM bills
+      WHERE created_at > NOW() - INTERVAL '6 months'
+      GROUP BY DATE_TRUNC('month', created_at)
+      ORDER BY month
+    `);
+    
+    // Bill status distribution
+    const billStatus = await pool.query(`
+      SELECT status, COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total
+      FROM bills GROUP BY status
+    `);
+    
+    // Payment status distribution
+    const paymentStatus = await pool.query(`
+      SELECT payment_status, COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total
+      FROM bills GROUP BY payment_status
+    `);
+    
+    // Project-wise PO values
+    const projectPOs = await pool.query(`
+      SELECT p.project_name, COUNT(po.id) as po_count, COALESCE(SUM(po.total), 0) as total_value
+      FROM projects p
+      LEFT JOIN purchase_orders po ON p.id = po.project_id
+      GROUP BY p.id, p.project_name
+      ORDER BY total_value DESC
+      LIMIT 5
+    `);
+    
+    // Top vendors by PO value
+    const topVendors = await pool.query(`
+      SELECT v.vendor_name, COUNT(po.id) as po_count, COALESCE(SUM(po.total), 0) as total_value
+      FROM vendors v
+      LEFT JOIN purchase_orders po ON v.id = po.vendor_id
+      GROUP BY v.id, v.vendor_name
+      ORDER BY total_value DESC
+      LIMIT 5
+    `);
+    
+    res.json({
+      success: true,
+      data: {
+        monthlyPO: monthlyPO.rows,
+        monthlyBills: monthlyBills.rows,
+        billStatus: billStatus.rows,
+        paymentStatus: paymentStatus.rows,
+        projectPOs: projectPOs.rows,
+        topVendors: topVendors.rows
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/settings', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM settings');
@@ -1117,6 +1186,577 @@ app.post('/api/backup/restore', async (req, res) => {
     res.json({ success: true, message: 'Database restored successfully' });
   } catch (err) {
     console.error('Restore error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// ACTIVITY LOG / AUDIT TRAIL
+// ============================================
+
+// Log an action to audit trail
+async function logAudit(userId, action, entityType, entityId, oldValues, newValues, req) {
+  try {
+    await pool.query(
+      `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, old_values, new_values, ip_address)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [userId, action, entityType, entityId, JSON.stringify(oldValues), JSON.stringify(newValues), req?.ip || req?.connection?.remoteAddress]
+    );
+  } catch (err) {
+    console.error('Audit log error:', err);
+  }
+}
+
+// Get audit logs
+app.get('/api/audit-logs', async (req, res) => {
+  try {
+    const { entityType, entityId, userId, action, limit = 100, offset = 0 } = req.query;
+    let query = `SELECT al.*, u.name as user_name, u.user_code FROM audit_logs al 
+                 LEFT JOIN users u ON al.user_id = u.id WHERE 1=1`;
+    const params = [];
+    let idx = 1;
+    
+    if (entityType) { query += ` AND al.entity_type = $${idx++}`; params.push(entityType); }
+    if (entityId) { query += ` AND al.entity_id = $${idx++}`; params.push(entityId); }
+    if (userId) { query += ` AND al.user_id = $${idx++}`; params.push(userId); }
+    if (action) { query += ` AND al.action = $${idx++}`; params.push(action); }
+    
+    query += ` ORDER BY al.created_at DESC LIMIT $${idx++} OFFSET $${idx++}`;
+    params.push(parseInt(limit), parseInt(offset));
+    
+    const result = await pool.query(query, params);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// ADVANCED SEARCH
+// ============================================
+
+app.get('/api/search', async (req, res) => {
+  try {
+    const { q, type } = req.query;
+    if (!q || q.length < 2) return res.json({ success: true, data: [] });
+    
+    const searchTerm = `%${q}%`;
+    const results = {
+      projects: [],
+      vendors: [],
+      indents: [],
+      po: [],
+      bills: [],
+      users: []
+    };
+    
+    // Search projects
+    if (!type || type === 'projects') {
+      const projects = await pool.query(
+        `SELECT id, project_name as name, project_code as code, 'project' as type FROM projects 
+         WHERE project_name ILIKE $1 OR project_code ILIKE $1 LIMIT 10`,
+        [searchTerm]
+      );
+      results.projects = projects.rows;
+    }
+    
+    // Search vendors
+    if (!type || type === 'vendors') {
+      const vendors = await pool.query(
+        `SELECT id, vendor_name as name, vendor_code as code, 'vendor' as type FROM vendors 
+         WHERE vendor_name ILIKE $1 OR vendor_code ILIKE $1 LIMIT 10`,
+        [searchTerm]
+      );
+      results.vendors = vendors.rows;
+    }
+    
+    // Search indents
+    if (!type || type === 'indents') {
+      const indents = await pool.query(
+        `SELECT id, indent_number as name, indent_number as code, 'indent' as type FROM material_indents 
+         WHERE indent_number ILIKE $1 OR item_description ILIKE $1 LIMIT 10`,
+        [searchTerm]
+      );
+      results.indents = indents.rows;
+    }
+    
+    // Search POs
+    if (!type || type === 'po') {
+      const pos = await pool.query(
+        `SELECT id, po_number as name, po_number as code, 'po' as type FROM purchase_orders 
+         WHERE po_number ILIKE $1 OR item_description ILIKE $1 LIMIT 10`,
+        [searchTerm]
+      );
+      results.po = pos.rows;
+    }
+    
+    // Search bills
+    if (!type || type === 'bills') {
+      const bills = await pool.query(
+        `SELECT id, bill_no as name, bill_no as code, 'bill' as type FROM bills 
+         WHERE bill_no ILIKE $1 OR description ILIKE $1 OR vendor_name ILIKE $1 LIMIT 10`,
+        [searchTerm]
+      );
+      results.bills = bills.rows;
+    }
+    
+    // Search users
+    if (!type || type === 'users') {
+      const users = await pool.query(
+        `SELECT id, name, user_code as code, 'user' as type FROM users 
+         WHERE name ILIKE $1 OR user_code ILIKE $1 OR email ILIKE $1 LIMIT 10`,
+        [searchTerm]
+      );
+      results.users = users.rows;
+    }
+    
+    res.json({ success: true, data: results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// NOTIFICATIONS CENTER
+// ============================================
+
+app.get('/api/notifications', async (req, res) => {
+  try {
+    const userId = req.userId;
+    const userRole = req.userRole;
+    
+    // Get pending items that need user's attention
+    const notifications = [];
+    
+    // Pending indents for approval
+    if (['ADMIN', 'DIRECTOR', 'MANAGER'].includes(userRole)) {
+      const pendingIndents = await pool.query(
+        `SELECT COUNT(*) as count FROM material_indents WHERE status = 'Pending'`
+      );
+      if (parseInt(pendingIndents.rows[0].count) > 0) {
+        notifications.push({
+          type: 'indent_pending',
+          title: 'Pending Indents',
+          message: `${pendingIndents.rows[0].count} indent(s) waiting for approval`,
+          count: parseInt(pendingIndents.rows[0].count),
+          link: 'material-indent.html'
+        });
+      }
+    }
+    
+    // Pending bills for approval
+    if (['ADMIN', 'DIRECTOR'].includes(userRole)) {
+      const pendingBills = await pool.query(
+        `SELECT COUNT(*) as count FROM bills WHERE status = 'Pending'`
+      );
+      if (parseInt(pendingBills.rows[0].count) > 0) {
+        notifications.push({
+          type: 'bill_pending',
+          title: 'Pending Bills',
+          message: `${pendingBills.rows[0].count} bill(s) waiting for approval`,
+          count: parseInt(pendingBills.rows[0].count),
+          link: 'bill-tracker.html'
+        });
+      }
+    }
+    
+    // Pending bills for payment
+    if (['ADMIN', 'DIRECTOR'].includes(userRole)) {
+      const approvedBills = await pool.query(
+        `SELECT COUNT(*) as count FROM bills WHERE status = 'Approved' AND payment_status = 'Unpaid'`
+      );
+      if (parseInt(approvedBills.rows[0].count) > 0) {
+        notifications.push({
+          type: 'payment_pending',
+          title: 'Bills for Payment',
+          message: `${approvedBills.rows[0].count} bill(s) approved, awaiting payment`,
+          count: parseInt(approvedBills.rows[0].count),
+          link: 'bill-tracker.html'
+        });
+      }
+    }
+    
+    res.json({ success: true, data: notifications });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Mark notification as read (store in settings)
+app.post('/api/notifications/read', async (req, res) => {
+  try {
+    const { type } = req.body;
+    const key = `notification_read_${type}`;
+    
+    await pool.query(
+      `INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2`,
+      [key, new Date().toISOString()]
+    );
+    
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// DOCUMENT UPLOAD
+// ============================================
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, 'uploads'));
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname);
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|pdf|doc|docx|xls|xlsx|ppt|pptx|txt/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (extname || mimetype) {
+      return cb(null, true);
+    }
+    cb(new Error('Only documents and images allowed'));
+  }
+});
+
+// Upload document for entity
+app.post('/api/documents', upload.single('file'), async (req, res) => {
+  try {
+    const { entityType, entityId, description } = req.body;
+    
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    
+    const result = await pool.query(
+      `INSERT INTO documents (entity_type, entity_id, file_name, file_path, file_type, file_size, description, uploaded_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [entityType, entityId, req.file.originalname, `/uploads/${req.file.filename}`, req.file.mimetype, req.file.size, description, req.userId]
+    );
+    
+    // Log audit
+    await logAudit(req.userId, 'DOCUMENT_UPLOAD', entityType, entityId, null, { fileName: req.file.originalname }, req);
+    
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get documents for entity
+app.get('/api/documents', async (req, res) => {
+  try {
+    const { entityType, entityId } = req.query;
+    let query = 'SELECT * FROM documents WHERE 1=1';
+    const params = [];
+    let idx = 1;
+    
+    if (entityType) { query += ` AND entity_type = $${idx++}`; params.push(entityType); }
+    if (entityId) { query += ` AND entity_id = $${idx++}`; params.push(entityId); }
+    
+    query += ' ORDER BY created_at DESC';
+    const result = await pool.query(query, params);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete document
+app.delete('/api/documents/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const doc = await pool.query('SELECT * FROM documents WHERE id = $1', [id]);
+    if (doc.rows.length === 0) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+    
+    await pool.query('DELETE FROM documents WHERE id = $1', [id]);
+    await logAudit(req.userId, 'DOCUMENT_DELETE', doc.rows[0].entity_type, id, { fileName: doc.rows[0].file_name }, null, req);
+    
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// PRINT TEMPLATES
+// ============================================
+
+app.get('/api/print/po/:poNum', async (req, res) => {
+  try {
+    const { poNum } = req.params;
+    const result = await pool.query(
+      `SELECT po.*, v.vendor_name, v.address as vendor_address, v.phone as vendor_phone, v.email as vendor_email,
+              p.project_name, p.project_code, u.name as created_by_name
+       FROM purchase_orders po
+       LEFT JOIN vendors v ON po.vendor_id = v.id
+       LEFT JOIN projects p ON po.project_id = p.id
+       LEFT JOIN users u ON po.created_by = u.id
+       WHERE po.po_number = $1`,
+      [poNum]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'PO not found' });
+    }
+    
+    const po = result.rows[0];
+    
+    // Generate HTML for printing
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Purchase Order - ${po.po_number}</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+    .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
+    .company { font-size: 24px; font-weight: bold; color: #C17B3A; }
+    .po-title { font-size: 18px; color: #666; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+    .info-box { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+    .info-box h3 { margin: 0 0 10px 0; color: #333; font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #f5f5f5; }
+    .totals { text-align: right; margin-top: 20px; }
+    .signature { margin-top: 50px; display: flex; justify-content: space-between; }
+    .sig-box { width: 200px; border-top: 1px solid #333; padding-top: 10px; text-align: center; }
+    @media print { body { padding: 0; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="company">BuildPro ERP</div>
+      <div>Purchase Order</div>
+    </div>
+    <div class="po-title">
+      <div><strong>PO Number:</strong> ${po.po_number}</div>
+      <div><strong>Date:</strong> ${new Date(po.created_at).toLocaleDateString()}</div>
+    </div>
+  </div>
+  
+  <div class="info-grid">
+    <div class="info-box">
+      <h3>VENDOR</h3>
+      <div><strong>${po.vendor_name}</strong></div>
+      <div>${po.vendor_address || ''}</div>
+      <div>${po.vendor_phone || ''}</div>
+      <div>${po.vendor_email || ''}</div>
+    </div>
+    <div class="info-box">
+      <h3>PROJECT</h3>
+      <div><strong>${po.project_name}</strong></div>
+      <div>Code: ${po.project_code}</div>
+    </div>
+  </div>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th>Qty</th>
+        <th>Unit</th>
+        <th>Rate</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>${po.item_description}</td>
+        <td>${po.quantity}</td>
+        <td>${po.unit || '-'}</td>
+        <td>₹${po.rate}</td>
+        <td>₹${po.total}</td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <div class="totals">
+    <div><strong>Total:</strong> ₹${po.total}</div>
+  </div>
+  
+  <div class="signature">
+    <div class="sig-box">Authorized Signature</div>
+    <div class="sig-box">Vendor Signature</div>
+  </div>
+</body>
+</html>`;
+    
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/print/bill/:billId', async (req, res) => {
+  try {
+    const { billId } = req.params;
+    const result = await pool.query(
+      `SELECT b.*, p.project_name, p.project_code
+       FROM bills b
+       LEFT JOIN projects p ON b.project_id = p.id
+       WHERE b.id = $1`,
+      [billId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Bill not found' });
+    }
+    
+    const bill = result.rows[0];
+    
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bill - ${bill.bill_no}</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+    .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
+    .company { font-size: 24px; font-weight: bold; color: #C17B3A; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #f5f5f5; }
+    .totals { text-align: right; margin-top: 20px; }
+    .status { padding: 5px 10px; border-radius: 3px; font-size: 12px; }
+    .status-paid { background: #d4edda; color: #155724; }
+    .status-pending { background: #fff3cd; color: #856404; }
+    @media print { body { padding: 0; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="company">BuildPro ERP</div>
+      <div>BILL / INVOICE</div>
+    </div>
+    <div>
+      <div><strong>Bill No:</strong> ${bill.bill_no}</div>
+      <div><strong>Date:</strong> ${new Date(bill.bill_date).toLocaleDateString()}</div>
+      <div><strong>Project:</strong> ${bill.project_name}</div>
+    </div>
+  </div>
+  
+  <table>
+    <tr>
+      <th>Description</th>
+      <td>${bill.description}</td>
+    </tr>
+    <tr>
+      <th>Vendor</th>
+      <td>${bill.vendor_name}</td>
+    </tr>
+    <tr>
+      <th>Invoice No</th>
+      <td>${bill.invoice_no || '-'}</td>
+    </tr>
+  </table>
+  
+  <div class="totals">
+    <div>Amount: ₹${bill.amount}</div>
+    <div>Tax: ₹${bill.tax_amount || 0}</div>
+    <div><strong>Total: ₹${bill.total_amount}</strong></div>
+    <div class="status status-${bill.payment_status === 'Paid' ? 'paid' : 'pending'}">
+      ${bill.status} - ${bill.payment_status}
+    </div>
+  </div>
+</body>
+</html>`;
+    
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// WORKFLOW AUTOMATION
+// ============================================
+
+// Auto-approve indents based on amount threshold
+app.post('/api/automation/auto-approve', async (req, res) => {
+  try {
+    const { indentId, autoApproveThreshold = 50000 } = req.body;
+    
+    // Get indent with amount
+    const indent = await pool.query(
+      `SELECT mi.*, (mi.quantity * mi.estimated_rate) as estimated_total 
+       FROM material_indents mi WHERE mi.id = $1`,
+      [indentId]
+    );
+    
+    if (indent.rows.length === 0) {
+      return res.status(404).json({ error: 'Indent not found' });
+    }
+    
+    const indentData = indent.rows[0];
+    const estimatedTotal = parseFloat(indentData.estimated_total) || 0;
+    
+    // Auto-approve if below threshold
+    if (estimatedTotal <= autoApproveThreshold) {
+      await pool.query(
+        `UPDATE material_indents SET status = 'Approved', approved_by = 'AUTO', approved_on = CURRENT_TIMESTAMP WHERE id = $1`,
+        [indentId]
+      );
+      await logAudit(null, 'AUTO_APPROVE', 'material_indent', indentId, { status: 'Pending' }, { status: 'Approved' }, req);
+      
+      return res.json({ success: true, message: 'Indent auto-approved', autoApproved: true });
+    }
+    
+    res.json({ success: true, autoApproved: false, message: 'Amount exceeds auto-approval threshold' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get automation settings
+app.get('/api/automation/settings', async (req, res) => {
+  try {
+    const result = await pool.query(`SELECT * FROM settings WHERE key LIKE 'automation_%'`);
+    const settings = {};
+    result.rows.forEach(r => { settings[r.key] = r.value; });
+    res.json({ success: true, data: settings });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update automation settings
+app.put('/api/automation/settings', async (req, res) => {
+  try {
+    const { autoApproveThreshold, autoEscalateDays, approvalChain } = req.body;
+    
+    if (autoApproveThreshold !== undefined) {
+      await pool.query(
+        `INSERT INTO settings (key, value) VALUES ('automation_auto_approve_threshold', $1) ON CONFLICT (key) DO UPDATE SET value = $1`,
+        [autoApproveThreshold]
+      );
+    }
+    
+    if (autoEscalateDays !== undefined) {
+      await pool.query(
+        `INSERT INTO settings (key, value) VALUES ('automation_escalate_days', $1) ON CONFLICT (key) DO UPDATE SET value = $1`,
+        [autoEscalateDays]
+      );
+    }
+    
+    res.json({ success: true });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
