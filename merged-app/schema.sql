@@ -7,6 +7,24 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================
+-- PROJECTS (Must be created first due to foreign keys)
+-- ============================================
+
+CREATE TABLE projects (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_code VARCHAR(100) UNIQUE NOT NULL,
+    project_name VARCHAR(255) NOT NULL,
+    client_name VARCHAR(255),
+    location VARCHAR(255),
+    start_date DATE,
+    end_date DATE,
+    budget DECIMAL(15,2),
+    status VARCHAR(50) DEFAULT 'Active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================
 -- USERS & AUTHENTICATION
 -- ============================================
 
@@ -31,24 +49,6 @@ CREATE TABLE sessions (
     token VARCHAR(255) UNIQUE NOT NULL,
     expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- ============================================
--- PROJECTS
--- ============================================
-
-CREATE TABLE projects (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    project_code VARCHAR(100) UNIQUE NOT NULL,
-    project_name VARCHAR(255) NOT NULL,
-    client_name VARCHAR(255),
-    location VARCHAR(255),
-    start_date DATE,
-    end_date DATE,
-    budget DECIMAL(15,2),
-    status VARCHAR(50) DEFAULT 'Active',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================
