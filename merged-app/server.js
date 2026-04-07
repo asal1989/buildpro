@@ -56,7 +56,7 @@ function requireAuth(req, res, next) {
 }
 
 // Public paths
-const publicPaths = ['/api/auth/login', '/api/auth/register', '/api/health', '/api/settings'];
+const publicPaths = ['/api/auth/login', '/api/auth/register', '/api/health', '/api/settings', '/api/dashboard-stats'];
 app.use('/api', (req, res, next) => {
   if (publicPaths.includes(req.path)) return next();
   return requireAuth(req, res, next);
@@ -628,6 +628,72 @@ app.post('/api/stock-items', async (req, res) => {
 // SETTINGS & HEALTH
 // ============================================
 
+// Dashboard Stats Endpoint
+app.get('/api/dashboard-stats', async (req, res) => {
+  try {
+    const [
+      projectsCount,
+      indentsPending,
+      indentsApproved,
+      posCount,
+      grnCount,
+      billsPending,
+      billsApproved,
+      billsPaid,
+      vendorsCount,
+      invoicesCount
+    ] = await Promise.all([
+      pool.query('SELECT COUNT(*) as count FROM projects'),
+      pool.query("SELECT COUNT(*) as count FROM material_indents WHERE status = 'Pending'"),
+      pool.query("SELECT COUNT(*) as count FROM material_indents WHERE status = 'Approved'"),
+      pool.query('SELECT COUNT(*) as count FROM purchase_orders'),
+      pool.query('SELECT COUNT(*) as count FROM grn'),
+      pool.query("SELECT COUNT(*) as count FROM bills WHERE status = 'Pending'"),
+      pool.query("SELECT COUNT(*) as count FROM bills WHERE status = 'Approved'"),
+      pool.query("SELECT COUNT(*) as count FROM bills WHERE payment_status = 'Paid'"),
+      pool.query('SELECT COUNT(*) as count FROM vendors WHERE is_active = true'),
+      pool.query('SELECT COUNT(*) as count FROM invoices')
+    ]);
+
+    const poTotal = await pool.query('SELECT COALESCE(SUM(total), 0) as total FROM purchase_orders');
+    const billsTotal = await pool.query('SELECT COALESCE(SUM(total_amount), 0) as total FROM bills');
+
+    const recentIndents = await pool.query(
+      'SELECT i.*, p.project_name FROM material_indents i LEFT JOIN projects p ON i.project_id = p.id ORDER BY i.created_at DESC LIMIT 5'
+    );
+    const recentBills = await pool.query(
+      'SELECT b.*, p.project_name FROM bills b LEFT JOIN projects p ON b.project_id = p.id ORDER BY b.created_at DESC LIMIT 5'
+    );
+
+    res.json({
+      success: true,
+      data: {
+        projects: parseInt(projectsCount.rows[0].count),
+        indents: {
+          pending: parseInt(indentsPending.rows[0].count),
+          approved: parseInt(indentsApproved.rows[0].count)
+        },
+        purchaseOrders: parseInt(posCount.rows[0].count),
+        grn: parseInt(grnCount.rows[0].count),
+        bills: {
+          pending: parseInt(billsPending.rows[0].count),
+          approved: parseInt(billsApproved.rows[0].count),
+          paid: parseInt(billsPaid.rows[0].count),
+          totalAmount: parseFloat(billsTotal.rows[0].total)
+        },
+        vendors: parseInt(vendorsCount.rows[0].count),
+        invoices: parseInt(invoicesCount.rows[0].count),
+        totalPOValue: parseFloat(poTotal.rows[0].total),
+        recentIndents: recentIndents.rows,
+        recentBills: recentBills.rows
+      }
+    });
+  } catch (err) {
+    console.error('Dashboard stats error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/settings', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM settings');
@@ -654,6 +720,170 @@ app.put('/api/settings', async (req, res) => {
 
 app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'BuildPro ERP API is running', timestamp: new Date().toISOString() });
+});
+
+// ============================================
+// EXPORT REPORTS (CSV/Excel)
+// ============================================
+
+function arrayToCSV(data, headers) {
+  if (!data || data.length === 0) return '';
+  const headerRow = headers.map(h => `"${h.label}"`).join(',');
+  const rows = data.map(row => {
+    return headers.map(h => {
+      const val = row[h.key];
+      if (val === null || val === undefined) return '';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    }).join(',');
+  });
+  return [headerRow, ...rows].join('\n');
+}
+
+app.get('/api/export/indents', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT i.*, p.project_name FROM material_indents i LEFT JOIN projects p ON i.project_id = p.id ORDER BY i.created_at DESC`
+    );
+    const headers = [
+      { key: 'indent_number', label: 'Indent No' },
+      { key: 'project_name', label: 'Project' },
+      { key: 'item_description', label: 'Description' },
+      { key: 'quantity', label: 'Quantity' },
+      { key: 'unit', label: 'Unit' },
+      { key: 'status', label: 'Status' },
+      { key: 'created_at', label: 'Created Date' }
+    ];
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=indents.csv');
+    res.send(arrayToCSV(result.rows, headers));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/export/po', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT po.*, v.vendor_name, p.project_name FROM purchase_orders po 
+       LEFT JOIN vendors v ON po.vendor_id = v.id 
+       LEFT JOIN projects p ON po.project_id = p.id
+       ORDER BY po.created_at DESC`
+    );
+    const headers = [
+      { key: 'po_number', label: 'PO No' },
+      { key: 'project_name', label: 'Project' },
+      { key: 'vendor_name', label: 'Vendor' },
+      { key: 'item_description', label: 'Description' },
+      { key: 'quantity', label: 'Qty' },
+      { key: 'rate', label: 'Rate' },
+      { key: 'total', label: 'Total' },
+      { key: 'status', label: 'Status' },
+      { key: 'created_at', label: 'Date' }
+    ];
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=purchase_orders.csv');
+    res.send(arrayToCSV(result.rows, headers));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/export/bills', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT b.*, p.project_name FROM bills b LEFT JOIN projects p ON b.project_id = p.id ORDER BY b.created_at DESC`
+    );
+    const headers = [
+      { key: 'bill_no', label: 'Bill No' },
+      { key: 'project_name', label: 'Project' },
+      { key: 'vendor_name', label: 'Vendor' },
+      { key: 'bill_date', label: 'Bill Date' },
+      { key: 'description', label: 'Description' },
+      { key: 'amount', label: 'Amount' },
+      { key: 'tax_amount', label: 'Tax' },
+      { key: 'total_amount', label: 'Total' },
+      { key: 'status', label: 'Status' },
+      { key: 'payment_status', label: 'Payment Status' }
+    ];
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=bills.csv');
+    res.send(arrayToCSV(result.rows, headers));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/export/vendors', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM vendors WHERE is_active = true ORDER BY vendor_name');
+    const headers = [
+      { key: 'vendor_code', label: 'Code' },
+      { key: 'vendor_name', label: 'Name' },
+      { key: 'contact_person', label: 'Contact' },
+      { key: 'email', label: 'Email' },
+      { key: 'phone', label: 'Phone' },
+      { key: 'address', label: 'Address' }
+    ];
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=vendors.csv');
+    res.send(arrayToCSV(result.rows, headers));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// DATABASE BACKUP/RESTORE
+// ============================================
+
+app.get('/api/backup/full', async (req, res) => {
+  try {
+    const tables = ['projects', 'vendors', 'users', 'material_indents', 'purchase_orders', 'grn', 'invoices', 'bills', 'material_tracker_items', 'settings'];
+    const backup = {};
+    
+    for (const table of tables) {
+      const result = await pool.query(`SELECT * FROM ${table}`);
+      backup[table] = result.rows;
+    }
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename=buildpro_backup.json');
+    res.json(backup);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/backup/restore', async (req, res) => {
+  try {
+    const { data } = req.body;
+    if (!data) return res.status(400).json({ error: 'No data provided' });
+    
+    const tableOrder = ['projects', 'vendors', 'users', 'material_indents', 'purchase_orders', 'grn', 'invoices', 'bills', 'material_tracker_items', 'settings'];
+    
+    for (const table of tableOrder) {
+      if (data[table] && Array.isArray(data[table])) {
+        // Clear existing data
+        await pool.query(`DELETE FROM ${table}`);
+        // Restore data
+        for (const row of data[table]) {
+          const columns = Object.keys(row).filter(k => row[k] !== undefined);
+          const values = columns.map((_, i) => `$${i + 1}`);
+          const cols = columns.join(', ');
+          await pool.query(
+            `INSERT INTO ${table} (${cols}) VALUES (${values.join(', ')}) ON CONFLICT DO NOTHING`,
+            columns.map(c => row[c])
+          );
+        }
+      }
+    }
+    
+    res.json({ success: true, message: 'Database restored successfully' });
+  } catch (err) {
+    console.error('Restore error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ============================================
