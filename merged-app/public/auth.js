@@ -1,9 +1,18 @@
 const AUTH_STORAGE_KEY = 'buildpro_session';
 
+// For Bill Tracker compatibility
+const TQS_TOKEN_KEY = 'tqs_token';
+
 function getSession() {
   try {
     const raw = sessionStorage.getItem(AUTH_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (raw) return JSON.parse(raw);
+    // Also check for TQS token
+    const tqsToken = sessionStorage.getItem(TQS_TOKEN_KEY);
+    if (tqsToken) {
+      return { token: tqsToken };
+    }
+    return null;
   } catch {
     return null;
   }
@@ -47,6 +56,8 @@ function syncLegacyUserState(session) {
 function storeSession(session) {
   setSession(session);
   syncLegacyUserState(session);
+  // Also store for Bill Tracker compatibility
+  sessionStorage.setItem(TQS_TOKEN_KEY, session.token);
   return session;
 }
 
@@ -70,6 +81,7 @@ function handleUnauthorized(redirectPath = 'login.html') {
 
 function logout(redirectPath = 'login.html') {
   clearSession();
+  sessionStorage.removeItem('tqs_token');
   sessionStorage.removeItem('buildpro_user_id');
   sessionStorage.removeItem('buildpro_user_name');
   sessionStorage.removeItem('buildpro_user_email');
