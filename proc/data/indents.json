@@ -1,0 +1,20 @@
+[
+  {
+    "id": "IND-001",
+    "material": "Interior Emulsion 20L",
+    "category": "Paint",
+    "qty": 105,
+    "unit": "Litres",
+    "date": "2026-04-13",
+    "raisedBy": "Administrator",
+    "priority": "High",
+    "status": "PO Raised",
+    "project": "TQS Project_Yelhkanka",
+    "notes": "",
+    "submitted": "06 Apr 2026, 01:56 pm",
+    "approvedBy": "Administrator",
+    "approvedOn": "06 Apr 2026, 02:04 pm",
+    "poOn": "06 Apr 2026, 02:05 pm",
+    "selectedVendor": "Chiranth Agencies"
+  }
+]

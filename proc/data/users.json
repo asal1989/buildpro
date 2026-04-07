@@ -1,0 +1,66 @@
+[
+  {
+    "id": "USR-001",
+    "name": "Administrator",
+    "email": "admin@buildpro.local",
+    "password": "scrypt$7154b8e71c03c98d13e502f852004b0b$d3f73db417041cee407ed0fd233cb3f0874f2aaf5ba20554d64f560b9305d8eb0d957974d08a6e607f092a2db432c20f0c5eca01e0dada26a1ec57adb0fa10a8",
+    "role": "ADMIN",
+    "created_at": "2026-04-04T00:00:00.000Z"
+  },
+  {
+    "id": "USR-002",
+    "name": "Vikram Shah",
+    "email": "director@buildpro.local",
+    "password": "scrypt$6f07eefee63d67251d5fc31f409b0c03$19d33580511d713a3d8e312381452e8558a21616649b44039239bb708ac8d4297959337ceb0de985e2960b4cbe0681799b9cf0247472dba8977603b7a8309117",
+    "role": "DIRECTOR",
+    "created_at": "2026-04-04T00:00:00.000Z"
+  },
+  {
+    "id": "USR-003",
+    "name": "Ramesh Kumar",
+    "email": "pm@buildpro.local",
+    "password": "scrypt$95ec18e03515a05b0a58f99b9c2b2061$b2b1e07da379278e5fce15e1a496ff0a8bb55cb17513234236ac1e05e392011e67cd5db2879e46d99a035c2acfaa2eb632c90399f4efc0c956093467743adca1",
+    "role": "PURCHASE_MANAGER",
+    "created_at": "2026-04-04T00:00:00.000Z"
+  },
+  {
+    "id": "USR-004",
+    "name": "Arjun Nair",
+    "email": "site@buildpro.local",
+    "password": "scrypt$207368b9285e5761dcdc3987e429d02c$0e3ac35a9a22e76fd58d6b22519d270fbabcdc23358517c95f005d1674852b8263c75d15b5bfec947bfd720bdf8f8b4b24c4df0f9ed993a9e88334263afb3989",
+    "role": "SITE_ENGINEER",
+    "created_at": "2026-04-04T00:00:00.000Z"
+  },
+  {
+    "id": "USR-005",
+    "name": "Suresh Pillai",
+    "email": "supervisor@buildpro.local",
+    "password": "scrypt$da4d2083fb2c951ab335fa981930212e$ac5395da303622a94569a706299ed816fbb4ac2c39bcad5f65ca2496a64122dda028e78ad4713b49bf6d1ca400bfd19a7db55e0dfe22e9a5e7eea0eb432494a9",
+    "role": "SUPERVISOR",
+    "created_at": "2026-04-04T00:00:00.000Z"
+  },
+  {
+    "id": "USR-006",
+    "name": "Priya Menon",
+    "email": "accountant@buildpro.local",
+    "password": "scrypt$a6172a58f1d1784b7b113f84442706f1$d99d5a602883d6a2f27f6000a502517d48ebf1eff2f1d122e329127d3c09bc7efde0d478c58c155045089140374d8e5dfc0fa6ac08d50ea90b0b12ba3bd0c787",
+    "role": "ACCOUNTANT",
+    "created_at": "2026-04-04T00:00:00.000Z"
+  },
+  {
+    "id": "USR-007",
+    "name": "B.K. Manjunath",
+    "email": "bkmnajunath@bcim.in",
+    "password": "scrypt$f54c74a3534a0b95bc00c279f5915a95$ec59c865da715ba1f1be8708bfdddb37a980425c16f9afff36664e1443307703d66b9b5cb8a8f37591637bc3095952f910aee522b68cce7b88f0b0927874d2b0",
+    "role": "PURCHASE_MANAGER",
+    "created_at": "2026-04-06T08:43:44.923Z"
+  },
+  {
+    "id": "USR-008",
+    "name": "Mr.Praveen",
+    "email": "praveen@bcim.in",
+    "password": "scrypt$ac83b292d090f57bae38022618fd1f2d$06fc31b84d904f90fd9731997ede6b77dd7c39246e6319d580358923a6cded42618cc8e948af51fa0ef9431a66246a96592e094e94ef266e2db58e5b29a42d7e",
+    "role": "PURCHASE_MANAGER",
+    "created_at": "2026-04-06T08:44:23.140Z"
+  }
+]
